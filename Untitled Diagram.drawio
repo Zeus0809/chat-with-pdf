@@ -1,9 +1,21 @@
 <mxfile host="app.diagrams.net" agent="Mozilla/5.0 (Macintosh; Intel Mac OS X 10_15_7) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/136.0.0.0 Safari/537.36" version="26.2.14">
   <diagram name="Page-1" id="Y-y8nMV_wzjHB2zbhsj-">
-    <mxGraphModel>
+    <mxGraphModel dx="946" dy="610" grid="1" gridSize="10" guides="1" tooltips="1" connect="1" arrows="1" fold="1" page="1" pageScale="1" pageWidth="850" pageHeight="1100" math="0" shadow="0">
       <root>
         <mxCell id="0" />
         <mxCell id="1" parent="0" />
+        <mxCell id="2iqee6Gc0dMgDYeSAd-z-3" value="PDF Viewer" style="rounded=0;whiteSpace=wrap;html=1;direction=south;" vertex="1" parent="1">
+          <mxGeometry x="40" y="160" width="400" height="560" as="geometry" />
+        </mxCell>
+        <mxCell id="2iqee6Gc0dMgDYeSAd-z-4" value="Main Application Screen" style="text;strokeColor=none;fillColor=none;html=1;fontSize=24;fontStyle=1;verticalAlign=middle;align=center;" vertex="1" parent="1">
+          <mxGeometry x="260" y="40" width="330" height="40" as="geometry" />
+        </mxCell>
+        <mxCell id="2iqee6Gc0dMgDYeSAd-z-5" value="Ask a question about PDF" style="rounded=1;whiteSpace=wrap;html=1;" vertex="1" parent="1">
+          <mxGeometry x="480" y="160" width="330" height="160" as="geometry" />
+        </mxCell>
+        <mxCell id="2iqee6Gc0dMgDYeSAd-z-7" value="LLM response goes here" style="rounded=1;whiteSpace=wrap;html=1;arcSize=8;" vertex="1" parent="1">
+          <mxGeometry x="480" y="360" width="330" height="360" as="geometry" />
+        </mxCell>
       </root>
     </mxGraphModel>
   </diagram>
