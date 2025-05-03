@@ -176,3 +176,4 @@ cython_debug/
 # RAG sample data
 data/
 images/
+local_models/text/Yi-1.5-9B-Chat-IQ4_NL.gguf
