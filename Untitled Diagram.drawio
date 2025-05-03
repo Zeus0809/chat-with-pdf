@@ -5,16 +5,25 @@
         <mxCell id="0" />
         <mxCell id="1" parent="0" />
         <mxCell id="2iqee6Gc0dMgDYeSAd-z-3" value="PDF Viewer" style="rounded=0;whiteSpace=wrap;html=1;direction=south;" vertex="1" parent="1">
-          <mxGeometry x="40" y="160" width="400" height="560" as="geometry" />
+          <mxGeometry x="40" y="120" width="400" height="600" as="geometry" />
         </mxCell>
         <mxCell id="2iqee6Gc0dMgDYeSAd-z-4" value="Main Application Screen" style="text;strokeColor=none;fillColor=none;html=1;fontSize=24;fontStyle=1;verticalAlign=middle;align=center;" vertex="1" parent="1">
           <mxGeometry x="260" y="40" width="330" height="40" as="geometry" />
         </mxCell>
         <mxCell id="2iqee6Gc0dMgDYeSAd-z-5" value="Ask a question about PDF" style="rounded=1;whiteSpace=wrap;html=1;" vertex="1" parent="1">
-          <mxGeometry x="480" y="160" width="330" height="160" as="geometry" />
+          <mxGeometry x="480" y="120" width="330" height="160" as="geometry" />
         </mxCell>
         <mxCell id="2iqee6Gc0dMgDYeSAd-z-7" value="LLM response goes here" style="rounded=1;whiteSpace=wrap;html=1;arcSize=8;" vertex="1" parent="1">
           <mxGeometry x="480" y="360" width="330" height="360" as="geometry" />
+        </mxCell>
+        <mxCell id="2iqee6Gc0dMgDYeSAd-z-8" value="Send" style="labelPosition=center;verticalLabelPosition=middle;align=center;html=1;shape=mxgraph.basic.shaded_button;dx=10;fillColor=#dae8fc;strokeColor=#6c8ebf;whiteSpace=wrap;" vertex="1" parent="1">
+          <mxGeometry x="740" y="240" width="60" height="30" as="geometry" />
+        </mxCell>
+        <mxCell id="2iqee6Gc0dMgDYeSAd-z-9" value="Reset" style="rounded=1;html=1;shadow=0;dashed=0;whiteSpace=wrap;fontSize=10;fillColor=#666666;align=center;strokeColor=#4D4D4D;fontColor=#ffffff;" vertex="1" parent="1">
+          <mxGeometry x="480" y="290" width="330" height="40" as="geometry" />
+        </mxCell>
+        <mxCell id="2iqee6Gc0dMgDYeSAd-z-10" value="Clear" style="labelPosition=center;verticalLabelPosition=middle;align=center;html=1;shape=mxgraph.basic.shaded_button;dx=10;fillColor=#dae8fc;strokeColor=#6c8ebf;whiteSpace=wrap;" vertex="1" parent="1">
+          <mxGeometry x="490" y="240" width="60" height="30" as="geometry" />
         </mxCell>
       </root>
     </mxGraphModel>
