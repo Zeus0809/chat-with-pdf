@@ -4,35 +4,29 @@
       <root>
         <mxCell id="0" />
         <mxCell id="1" parent="0" />
-        <mxCell id="QJWGRvNb380F7AZeIbv6-2" value="PDF Viewer" style="rounded=0;whiteSpace=wrap;html=1;direction=south;" vertex="1" parent="1">
+        <mxCell id="QJWGRvNb380F7AZeIbv6-2" value="PDF Viewer" style="rounded=0;whiteSpace=wrap;html=1;direction=south;fillColor=#d5e8d4;strokeColor=#82b366;" vertex="1" parent="1">
           <mxGeometry x="570" y="120" width="260" height="620" as="geometry" />
         </mxCell>
-        <mxCell id="2iqee6Gc0dMgDYeSAd-z-3" value="PDF Viewer" style="rounded=0;whiteSpace=wrap;html=1;direction=south;" parent="1" vertex="1">
+        <mxCell id="2iqee6Gc0dMgDYeSAd-z-3" value="PDF Viewer" style="rounded=0;whiteSpace=wrap;html=1;direction=south;fillColor=#f5f5f5;fontColor=#333333;strokeColor=#666666;" parent="1" vertex="1">
           <mxGeometry x="40" y="120" width="530" height="620" as="geometry" />
         </mxCell>
         <mxCell id="2iqee6Gc0dMgDYeSAd-z-4" value="Main Application Screen" style="text;strokeColor=none;fillColor=none;html=1;fontSize=24;fontStyle=1;verticalAlign=middle;align=center;" parent="1" vertex="1">
           <mxGeometry x="260" y="40" width="330" height="40" as="geometry" />
         </mxCell>
         <mxCell id="2iqee6Gc0dMgDYeSAd-z-5" value="Ask a question about PDF" style="rounded=1;whiteSpace=wrap;html=1;" parent="1" vertex="1">
-          <mxGeometry x="590" y="141" width="220" height="160" as="geometry" />
+          <mxGeometry x="580" y="550" width="240" height="160" as="geometry" />
         </mxCell>
-        <mxCell id="QJWGRvNb380F7AZeIbv6-1" value="" style="edgeStyle=orthogonalEdgeStyle;rounded=0;orthogonalLoop=1;jettySize=auto;html=1;" edge="1" parent="1" source="2iqee6Gc0dMgDYeSAd-z-7" target="2iqee6Gc0dMgDYeSAd-z-10">
-          <mxGeometry relative="1" as="geometry" />
+        <mxCell id="2iqee6Gc0dMgDYeSAd-z-7" value="LLM responses and&lt;div&gt;user messages go here&lt;/div&gt;" style="rounded=1;whiteSpace=wrap;html=1;arcSize=8;" parent="1" vertex="1">
+          <mxGeometry x="579" y="128" width="243" height="415" as="geometry" />
         </mxCell>
-        <mxCell id="2iqee6Gc0dMgDYeSAd-z-7" value="LLM response goes here" style="rounded=1;whiteSpace=wrap;html=1;arcSize=8;" parent="1" vertex="1">
-          <mxGeometry x="590" y="360" width="220" height="330" as="geometry" />
+        <mxCell id="2iqee6Gc0dMgDYeSAd-z-8" value="Send" style="labelPosition=center;verticalLabelPosition=middle;align=center;html=1;shape=mxgraph.basic.shaded_button;dx=4;fillColor=#dae8fc;strokeColor=#6c8ebf;whiteSpace=wrap;" parent="1" vertex="1">
+          <mxGeometry x="740" y="670" width="60" height="30" as="geometry" />
         </mxCell>
-        <mxCell id="2iqee6Gc0dMgDYeSAd-z-8" value="Send" style="labelPosition=center;verticalLabelPosition=middle;align=center;html=1;shape=mxgraph.basic.shaded_button;dx=10;fillColor=#dae8fc;strokeColor=#6c8ebf;whiteSpace=wrap;" parent="1" vertex="1">
-          <mxGeometry x="740" y="261" width="60" height="30" as="geometry" />
-        </mxCell>
-        <mxCell id="2iqee6Gc0dMgDYeSAd-z-9" value="Reset" style="rounded=1;html=1;shadow=0;dashed=0;whiteSpace=wrap;fontSize=10;fillColor=#666666;align=center;strokeColor=#4D4D4D;fontColor=#ffffff;" parent="1" vertex="1">
-          <mxGeometry x="590" y="308" width="220" height="40" as="geometry" />
-        </mxCell>
-        <mxCell id="2iqee6Gc0dMgDYeSAd-z-10" value="Clear" style="labelPosition=center;verticalLabelPosition=middle;align=center;html=1;shape=mxgraph.basic.shaded_button;dx=10;fillColor=#dae8fc;strokeColor=#6c8ebf;whiteSpace=wrap;" parent="1" vertex="1">
-          <mxGeometry x="600" y="261" width="60" height="30" as="geometry" />
+        <mxCell id="2iqee6Gc0dMgDYeSAd-z-10" value="Clear" style="labelPosition=center;verticalLabelPosition=middle;align=center;html=1;shape=mxgraph.basic.shaded_button;dx=4;fillColor=#dae8fc;strokeColor=#6c8ebf;whiteSpace=wrap;" parent="1" vertex="1">
+          <mxGeometry x="600" y="670" width="60" height="30" as="geometry" />
         </mxCell>
         <mxCell id="QJWGRvNb380F7AZeIbv6-3" value="Resizable sidebar" style="text;html=1;align=center;verticalAlign=middle;whiteSpace=wrap;rounded=0;" vertex="1" parent="1">
-          <mxGeometry x="640" y="700" width="120" height="30" as="geometry" />
+          <mxGeometry x="640" y="710" width="120" height="30" as="geometry" />
         </mxCell>
         <mxCell id="QJWGRvNb380F7AZeIbv6-4" value="" style="triangle;whiteSpace=wrap;html=1;direction=west;fillColor=#ffe6cc;strokeColor=#d79b00;" vertex="1" parent="1">
           <mxGeometry x="550" y="425" width="30" height="30" as="geometry" />
