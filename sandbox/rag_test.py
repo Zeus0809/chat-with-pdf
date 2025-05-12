@@ -1,5 +1,5 @@
 from llama_index.core import VectorStoreIndex, SimpleDirectoryReader, Settings
-from llama_cpp_embedding import LlamaCppEmbedding
+from llamaindex_utils.llama_cpp_embedding import LlamaCppEmbedding
 from llama_index.llms.llama_cpp import LlamaCPP
 import time
 
@@ -14,12 +14,16 @@ documents = SimpleDirectoryReader("data").load_data()
 index = VectorStoreIndex.from_documents(documents)
 end = time.time()
 
-print("Index created in: ", end - start)
+# print("Vector Store: ", index.vector_store)
+# print("Storage Context: ", index.storage_context)
+# print("Summary: ", index.summary)
 
-start = time.time()
-query_engine = index.as_query_engine(chat_model)
-response = query_engine.query(input("Ask me a question about CCCR: "))
-print(response)
-end = time.time()
+# print("Index created in: ", end - start)
 
-print("Response generated in: ", end - start)
+# start = time.time()
+# query_engine = index.as_query_engine(chat_model)
+# response = query_engine.query(input("Ask me a question about CCCR: "))
+# print(response)
+# end = time.time()
+
+# print("Response generated in: ", end - start)
