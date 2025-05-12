@@ -21,6 +21,9 @@ class LlamaCppEmbedding(MultiModalEmbedding):
         verbose: bool = False,
         **kwargs
     ):
+        
+        super().__init__(**kwargs)
+
         """
         Initialize the LlamaCPP embedding model.
     
@@ -38,11 +41,7 @@ class LlamaCppEmbedding(MultiModalEmbedding):
             n_ctx = n_ctx,
             n_threads = n_threads,
             verbose = verbose
-        )
-
-        print(f"\n--Constructor executed, _text_model created: {self._text_model}\n")
-
-        super().__init__(**kwargs)
+        )        
 
     def _get_text_embedding(self, text: str) -> List[float]:
         """
