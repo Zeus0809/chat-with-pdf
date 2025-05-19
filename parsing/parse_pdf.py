@@ -1,33 +1,25 @@
 import pymupdf
 import pprint
+from structure import ContentBlock
 
 doc = pymupdf.open("./data/SOR-2001-269.pdf")
-
-page_0 = doc[0].get_text("dict")
-pprint.pprint(page_0)
-
+# get all pages
+pages = [page for page in doc]
 # get blocks from page
-blocks = page_0.get("blocks")
-print("Blocks on page: ", len(blocks))
-print()
+first_page = pages[0].get_text("dict")
+first_page_blocks = first_page.get("blocks")
 
-for n, block in enumerate(blocks):
-    print(f"--- block # {n} ---")
+# Build content blocks for page 1
+page_content = []
+for block in first_page_blocks:
+    content_block = ContentBlock(pos=block.get("bbox"),
+                                 block_index=block.get("number"),
+                                 blocks_per_page=len(first_page_blocks),
+                                 page=pages[0].number+1)
+    page_content.append(content_block)
 
-    lines = block.get("lines")
-    if lines == None:
-        image = block.get("image")
-        block_type = "image"
-    else:
-        block_type = "text"
-
-    print("Block type: ", block_type)
-    if block_type == "text":
-        print("Number of lines: ", len(lines))
-        print("Text: ", ' '.join([line["spans"][0]["text"] for line in lines]))
-    else:
-        print("Image length: ", len(image))
-        print("File format: ", block["ext"])
+for b in page_content:
+    print(b)
 
 
-# 
+
