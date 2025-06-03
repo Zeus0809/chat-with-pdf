@@ -3,30 +3,32 @@ import pymupdf as pd
 import os
 from typing import List
 
+# global document handle
+pdf = None
 
 def get_page_paths() -> List[str]:
     """
-    Returns a list of image paths, each of which represents a page from the loaded PDF file. The PNG images live in ~/temp/.
+    Returns a list of image paths, each of which represents a page from the loaded PDF file. The PNG images live in ~/storage/temp/.
     """
-    paths = sorted([os.path.abspath(os.path.join("temp", fname)) for fname in os.listdir("temp")])
+    paths = sorted([os.path.abspath(os.path.join("storage/temp", fname)) for fname in os.listdir("storage/temp")])
     # print(paths)
     return paths
 
 def clear_temp_folder() -> None:
     """
-    Deletes all images (pdf pages) from ~/temp/.
+    Deletes all images (pdf pages) from ~/storage/temp/.
     """
     for image_path in get_page_paths():
         os.remove(image_path)
 
 def pages_to_images(pdf: pd.Document, pdf_name: str) -> None:
     """
-    Retrieves pages from the pdf file, converts them to PNGs and saves to ~/temp/.
+    Retrieves pages from the pdf file, converts them to PNGs and saves to ~/storage/temp/.
     """
     for i, page in enumerate(pdf):
         page_png = page.get_pixmap(dpi=150)
-        page_png.save(f"temp/{pdf_name[:9]}_{i:04d}.png")
-    print("--File info retrieved!--")
+        page_png.save(f"storage/temp/{pdf_name[:9]}_{i:04d}.png")
+    print("--New file info retrieved!--")
 
 def main(page: ft.Page):
     page.title = "Chat With PDF"
@@ -41,8 +43,12 @@ def main(page: ft.Page):
         # only process if user opened a file, not cancelled
         if e.files != None:
             # clear existing pdf
-            file_column.controls.clear()
-            clear_temp_folder()
+            global pdf
+            if pdf is not None:
+                pdf.close()
+                print("--Old file closed!--")
+                file_column.controls.clear()
+                clear_temp_folder()
             # open new pdf, parse into PNG images, add to UI to render
             pdf = pd.open(e.files[0].path)
             pages_to_images(pdf, e.files[0].name)
