@@ -38,21 +38,73 @@ def main(page: ft.Page):
     file_column = ft.Column(controls=[],
                             horizontal_alignment=ft.CrossAxisAlignment.CENTER,
                             expand=True, scroll=ft.ScrollMode.AUTO)
-    
+
+    chat_messages = ft.Column(
+        controls=[],
+        horizontal_alignment=ft.CrossAxisAlignment.CENTER,
+        expand=True,
+        scroll=ft.ScrollMode.AUTO,
+    )
+
+    message_input = ft.TextField(
+        hint_text="Ask a question here...",
+        multiline=True,
+        expand=True,
+    )
+
+    send_button = ft.IconButton(
+        icon=ft.Icons.SEND,
+        tooltip="Send Message",
+    )
+
+    input_row = ft.Row([message_input, send_button],
+                       spacing=10,
+                       vertical_alignment=ft.CrossAxisAlignment.END,
+                       expand=True)
+
+    chat_content = ft.Column(
+        controls=[
+            ft.Container(content=chat_messages, expand=3),
+            ft.Container(content=input_row, expand=1)
+        ],
+        spacing=10,
+        expand=True
+    )
+
+    sidebar_handle = ft.GestureDetector(
+        content=ft.Container(
+            width=5,
+            height=page.window.height,
+            bgcolor=ft.Colors.BLUE_300
+        ),
+        drag_interval=1,
+        on_pan_update=lambda e: resize_sidebar(e),
+        mouse_cursor=ft.MouseCursor.RESIZE_LEFT_RIGHT
+    )
+
     sidebar = ft.Container(
-        content=ft.Text("Sidebar Placeholder", text_align=ft.TextAlign.CENTER),
+        content=chat_content,
         width=0,
         height=page.window.height,
         bgcolor=ft.Colors.BLUE_50,
-        border_radius=ft.border_radius.all(5),
         padding=10,
-        animate=ft.Animation(300, ft.AnimationCurve.EASE_IN_OUT),
     )
+
+    def resize_sidebar(e):
+        """
+        Implements drag resize functionality for the sidebar
+        """
+        sidebar.animate = None
+        new_width = sidebar.width - e.delta_x
+        if 0 <= new_width <= page.window.width * 0.5: # limit width to 50% of window
+            sidebar.width = new_width
+            sidebar.update()
 
     def toggle_sidebar(e):
         """
         Toggles the sidebar visibility.
         """
+        sidebar.animate = ft.Animation(200, ft.AnimationCurve.EASE_IN_OUT)
         if sidebar.width == 0:
             sidebar.width = 350 # expand
         else:
@@ -74,7 +126,8 @@ def main(page: ft.Page):
             pages_to_images(pdf, e.files[0].name)
             paths = get_page_paths()
             image_pages = [ft.Image(src=path, fit=ft.ImageFit.CONTAIN) for path in paths]
-            file_column.controls.extend(image_pages)
+            image_containers = [ft.Container(content=image_page, padding=10) for image_page in image_pages]
+            file_column.controls.extend(image_containers)
             file_column.update()
             print(f"--{len(file_column.controls)} pages from {e.files[0].name} rendered!--")
 
@@ -97,11 +150,11 @@ def main(page: ft.Page):
     menu = ft.MenuBar(menu_controls, expand=True)
     menubar = ft.Row([menu])
 
-    app_content = ft.Row([file_column, sidebar], expand=True)
+    app_content = ft.Row([file_column, sidebar_handle, sidebar], spacing=0, expand=True)
 
-    
+    ui = ft.Column(controls=[menubar, app_content], spacing=0, expand=True)
 
     # render everything
-    page.add(menubar, app_content)
+    page.add(ui)
 
 ft.app(main)
