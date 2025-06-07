@@ -38,6 +38,26 @@ def main(page: ft.Page):
     file_column = ft.Column(controls=[],
                             horizontal_alignment=ft.CrossAxisAlignment.CENTER,
                             expand=True, scroll=ft.ScrollMode.AUTO)
+    
+    sidebar = ft.Container(
+        content=ft.Text("Sidebar Placeholder", text_align=ft.TextAlign.CENTER),
+        width=0,
+        height=page.window.height,
+        bgcolor=ft.Colors.BLUE_50,
+        border_radius=ft.border_radius.all(5),
+        padding=10,
+        animate=ft.Animation(300, ft.AnimationCurve.EASE_IN_OUT),
+    )
+
+    def toggle_sidebar(e):
+        """
+        Toggles the sidebar visibility.
+        """
+        if sidebar.width == 0:
+            sidebar.width = 350 # expand
+        else:
+            sidebar.width = 0 # collapse
+        sidebar.update()
 
     def on_dialog_result(e: ft.FilePickerResultEvent) -> None:
         # only process if user opened a file, not cancelled
@@ -68,19 +88,20 @@ def main(page: ft.Page):
     page.update()
 
     submenu_file_controls = [ft.MenuItemButton(content=ft.Text("Open"), close_on_click=True, on_click=open_file)]
+    submenu_chat_controls = [ft.MenuItemButton(content=ft.Text("Toggle Chat"), close_on_click=False, on_click=toggle_sidebar)] 
     submenu_file = ft.SubmenuButton(content=ft.Text(value="File", text_align=ft.TextAlign.CENTER), controls=submenu_file_controls)
     submenu_view = ft.SubmenuButton(content=ft.Text(value="View", text_align=ft.TextAlign.CENTER))
-    submenu_chat = ft.SubmenuButton(content=ft.Text(value="Chat", text_align=ft.TextAlign.CENTER))
+    submenu_chat = ft.SubmenuButton(content=ft.Text(value="Chat", text_align=ft.TextAlign.CENTER), controls=submenu_chat_controls)
 
     menu_controls = [submenu_file, submenu_view, submenu_chat]
     menu = ft.MenuBar(menu_controls, expand=True)
     menubar = ft.Row([menu])
 
-    
+    app_content = ft.Row([file_column, sidebar], expand=True)
 
     
 
     # render everything
-    page.add(menubar, file_column)
+    page.add(menubar, app_content)
 
 ft.app(main)
