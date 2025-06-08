@@ -39,8 +39,8 @@ class TextBlock(ContentBlock):
         # initialize parent
         super().__init__(pos, block_index, blocks_on_page, page)
 
-        assert isinstance(text, str), "Text must be a string."
-        assert (font_size is None or isinstance(font_size, int)), "Font size must be an integer, or None if not applicable (block text has multiple font sizes)."
+        assert isinstance(text, str), f"Text must be a string, instead got {type(text)}."
+        assert isinstance(font_size, int), f"Font size must be an integer, instead got {type(font_size)}. If block has multiple font sizes, expect -1."
 
         # set text attributes
         self.text = text

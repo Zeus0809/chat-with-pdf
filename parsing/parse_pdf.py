@@ -3,6 +3,8 @@ import pprint
 import structure as st
 
 doc = pymupdf.open("./data/SOR-2001-269.pdf")
+for page in doc:
+    print(page)
 # get all pages
 pages = [page for page in doc]
 # get blocks from page
@@ -13,7 +15,7 @@ first_page_blocks = first_page.get("blocks")
 # Build content blocks for page 1
 page_content = []
 for block in first_page_blocks:
-    
+
     # Create appropriate objects based on block type
     if "lines" in block.keys():
         # build full text from block + check font size

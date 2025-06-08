@@ -2,9 +2,14 @@ import flet as ft
 import pymupdf as pd
 import os
 from typing import List
+import time
+import parser
 
-# global document handle
+# global raw document handle
 pdf = None
+
+# global structured document handle
+document_content = None
 
 def get_page_paths() -> List[str]:
     """
@@ -29,6 +34,25 @@ def pages_to_images(pdf: pd.Document, pdf_name: str) -> None:
         page_png = page.get_pixmap(dpi=150)
         page_png.save(f"storage/temp/{pdf_name[:9]}_{i:04d}.png")
     print("--New file info retrieved!--")
+
+def parse_document() -> None:
+        """
+        Parses the loaded PDF into structured content blocks. 
+        """
+        assert pdf is not None, "No PDF document loaded: global handle is None."
+        print("\n--Parsing document...--\n")
+        global document_content
+        document_content = []
+        total_t = 0
+        for page in pdf:
+            start = time.time()
+            page_content = parser.build_page_content(page)
+            document_content.append(page_content)
+            end = time.time()
+            t = round(end-start, 2)
+            total_t += t
+            print(f"--Page {page.number+1} parsed in {t}s.--")
+        print(f"\n--Document parsed in {round(total_t, 2)}s.--\n")
 
 def main(page: ft.Page):
     page.title = "Chat With PDF"
@@ -74,7 +98,6 @@ def main(page: ft.Page):
     sidebar_handle = ft.GestureDetector(
         content=ft.Container(
             width=5,
-            height=page.window.height,
             bgcolor=ft.Colors.BLUE_300
         ),
         drag_interval=1,
@@ -85,12 +108,20 @@ def main(page: ft.Page):
     sidebar = ft.Container(
         content=chat_content,
         width=0,
-        height=page.window.height,
         bgcolor=ft.Colors.BLUE_50,
         padding=10,
     )
 
-    def resize_sidebar(e):
+    def on_window_resize(e: ft.WindowResizeEvent) -> None:
+        """
+        Handles window resize events to adjust sidebar height.
+        """
+        sidebar.height = page.window.height
+        sidebar_handle.height = page.window.height
+        sidebar.update()
+        sidebar_handle.update()
+
+    def resize_sidebar(e: ft.DragUpdateEvent) -> None:
         """
         Implements drag resize functionality for the sidebar
         """
@@ -100,11 +131,12 @@ def main(page: ft.Page):
             sidebar.width = new_width
             sidebar.update()
 
-    def toggle_sidebar(e):
+    def toggle_sidebar(e) -> None:
         """
         Toggles the sidebar visibility.
         """
-        sidebar.animate = ft.Animation(200, ft.AnimationCurve.EASE_IN_OUT)
+        if sidebar.animate is None:
+            sidebar.animate = ft.Animation(200, ft.AnimationCurve.EASE_IN_OUT)
         if sidebar.width == 0:
             sidebar.width = 350 # expand
         else:
@@ -122,6 +154,7 @@ def main(page: ft.Page):
                 file_column.controls.clear()
                 clear_temp_folder()
             # open new pdf, parse into PNG images, add to UI to render
+            begin = time.time()
             pdf = pd.open(e.files[0].path)
             pages_to_images(pdf, e.files[0].name)
             paths = get_page_paths()
@@ -129,7 +162,18 @@ def main(page: ft.Page):
             image_containers = [ft.Container(content=image_page, padding=10) for image_page in image_pages]
             file_column.controls.extend(image_containers)
             file_column.update()
-            print(f"--{len(file_column.controls)} pages from {e.files[0].name} rendered!--")
+            end = time.time()
+            print(f"--{len(file_column.controls)} pages from {e.files[0].name} rendered in {round(end-begin, 2)}s!--")
+            # parse the document into structured content
+            parse_document()
+            # temp debugging
+            chat_messages.controls.clear()
+            content_string = ""
+            for page in document_content:
+                for block in page:
+                    content_string += str(block) + "\n"
+            chat_messages.controls.append(ft.Text(content_string))
+            chat_messages.update()
 
     def open_file(e) -> None:
         file_picker.pick_files(initial_directory="Desktop", allowed_extensions=["pdf"])
@@ -154,7 +198,10 @@ def main(page: ft.Page):
 
     ui = ft.Column(controls=[menubar, app_content], spacing=0, expand=True)
 
+    page.on_resized = on_window_resize
+
     # render everything
     page.add(ui)
+
 
 ft.app(main)
