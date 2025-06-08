@@ -35,9 +35,9 @@ def pages_to_images(pdf: pd.Document, pdf_name: str) -> None:
         page_png.save(f"storage/temp/{pdf_name[:9]}_{i:04d}.png")
     print("--New file info retrieved!--")
 
-def parse_document() -> None:
+def parse_document_into_blocks() -> None:
         """
-        Parses the loaded PDF into structured content blocks. 
+        Parses the loaded PDF into structured content blocks using parser.build_page_content(). 
         """
         assert pdf is not None, "No PDF document loaded: global handle is None."
         print("\n--Parsing document...--\n")
@@ -53,6 +53,18 @@ def parse_document() -> None:
             total_t += t
             print(f"--Page {page.number+1} parsed in {t}s.--")
         print(f"\n--Document parsed in {round(total_t, 2)}s.--\n")
+
+def parse_document_into_markdown() -> None:
+        """
+        Parses the loaded PDF into markdown using parser.get_page_markdown(). 
+        """
+        assert pdf is not None, "No PDF document loaded: global handle is None."
+        print("\n--Parsing document...--\n")
+        global document_content
+        starttime = time.time()
+        document_content = parser.get_doc_markdown(pdf)
+        endtime = time.time()
+        print(f"\n--Document parsed in {round(endtime-starttime, 2)}s.--\n")
 
 def main(page: ft.Page):
     page.title = "Chat With PDF"
@@ -112,6 +124,19 @@ def main(page: ft.Page):
         padding=10,
     )
 
+    def debug_parsed_content() -> None:
+        """
+        This is a temporary function for debugging purposes.
+        Builds a string representation of the parsed content and puts it into the sidebar for debugging.
+        """
+        chat_messages.controls.clear()
+        content_string = ""
+        for page in document_content:
+            for block in page:
+                content_string += str(block) + "\n"
+        chat_messages.controls.append(ft.Text(content_string))
+        chat_messages.update()
+
     def on_window_resize(e: ft.WindowResizeEvent) -> None:
         """
         Handles window resize events to adjust sidebar height.
@@ -164,15 +189,11 @@ def main(page: ft.Page):
             file_column.update()
             end = time.time()
             print(f"--{len(file_column.controls)} pages from {e.files[0].name} rendered in {round(end-begin, 2)}s!--")
-            # parse the document into structured content
-            parse_document()
-            # temp debugging
+            # parse the document into markdown format
+            parse_document_into_markdown()
+            # debugging
             chat_messages.controls.clear()
-            content_string = ""
-            for page in document_content:
-                for block in page:
-                    content_string += str(block) + "\n"
-            chat_messages.controls.append(ft.Text(content_string))
+            chat_messages.controls.append(ft.Text(document_content))
             chat_messages.update()
 
     def open_file(e) -> None:

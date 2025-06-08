@@ -12,20 +12,17 @@ class ContentBlock():
         assert isinstance(page, int), "Block page number must be an integer."
 
         # Block position (float)
-        self.x0 = pos[0]
-        self.y0 = pos[1]
-        self.x1 = pos[2]
-        self.y1 = pos[3]
+        self.x0 = round(pos[0], 2)
+        self.y0 = round(pos[1], 2)
+        self.x1 = round(pos[2], 2)
+        self.y1 = round(pos[3], 2)
         # Block size (float)
-        self.width = pos[2] - pos[0]
-        self.height = pos[3] - pos[1]
+        self.width = round(self.x1 - self.x0, 2)
+        self.height = round(self.y1 - self.y0, 2)
         # Block metadata
         self.page_position = (block_index+1, blocks_on_page)
         self.page = page
 
-    # to string
-    def __str__(self):
-        return f"Content block {self.page_position[0]} out of {self.page_position[1]} on page {self.page}"
 
 class TextBlock(ContentBlock):
     """
@@ -47,7 +44,12 @@ class TextBlock(ContentBlock):
         self.font_size = font_size
 
     def __str__(self):
-        return f"Text block starting with '{self.text[:7]}' and ending with '{self.text[len(self.text)-7:]}'."
+        result = f"Text block at: ({self.x0}, {self.y0}) - ({self.x1}, {self.y1})\n"
+        result += f"Of size: {self.width} x {self.height} pt\n"
+        result += f"Order: {self.page_position[0]} of {self.page_position[1]} on page {self.page}\n"
+        result += f"Font size: {self.font_size} pt\n"
+        result += f"-------------------Text:-------------------\n{self.text}\n-------------------------------------------\n"
+        return result
 
 class ImageBlock(ContentBlock):
     """
@@ -69,7 +71,10 @@ class ImageBlock(ContentBlock):
         self.size = self.width * self.height
 
     def __str__(self):
-        return f"Image block of size {self.size} pt"
+        result = f"Image block at: ({self.x0}, {self.y0}) - ({self.x1}, {self.y1})\n"
+        result += f"Of size: {self.width} x {self.height} pt\n"
+        result += f"Order: {self.page_position[0]} of {self.page_position[1]} on page {self.page}\n"
+        return result
 
 
 

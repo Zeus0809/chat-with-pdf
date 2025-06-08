@@ -1,4 +1,5 @@
 import pymupdf as pd
+import pymupdf4llm as pd4llm
 import structure as st
 import pprint
 from typing import List
@@ -36,6 +37,7 @@ def get_block_font_size(text_block: dict) -> int:
 def build_page_content(page: pd.Page) -> List[st.ContentBlock]:
     """
     Builds a list of content blocks (different classes based on content) from a pymupdf page object.
+    Data is extracted as a dict.
     """
     blocks = page.get_text("dict").get("blocks")
     content = []
@@ -65,7 +67,13 @@ def build_page_content(page: pd.Page) -> List[st.ContentBlock]:
             content.append("404: unknown type")
     return content
 
-       
+def get_doc_markdown(doc: pd.Document) -> str:
+    """
+    Returns a markdown representation of the document content.
+    """
+    content = pd4llm.to_markdown(doc=doc, show_progress=True)
+    print(f"\n###-Markdown-Start-###\n{content}\n###-Markdown-End-###\n")
+    return content
 
 
 
