@@ -29,6 +29,9 @@ copyright = "Copyright (C) 2025 by IK"
 [tool.flet.app]
 path = "src"
 
+# Icon configuration
+icon = "assets/icon.png"  # Path to your icon file
+
 [tool.uv]
 dev-dependencies = [
     "flet[all]==0.28.3",

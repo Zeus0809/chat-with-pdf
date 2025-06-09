@@ -71,7 +71,8 @@ def main(page: ft.Page):
     page.padding = 0
     page.horizontal_alignment = ft.CrossAxisAlignment.CENTER
 
-    file_column = ft.Column(controls=[],
+
+    file_column = ft.Column(controls=[ft.Image(src="/Users/illiakozlov/ChatWithPDF/chat-with-pdf/src/assets/logo.png", width=500, opacity=0.5)],
                             horizontal_alignment=ft.CrossAxisAlignment.CENTER,
                             expand=True, scroll=ft.ScrollMode.AUTO)
 
@@ -176,8 +177,8 @@ def main(page: ft.Page):
             if pdf is not None:
                 pdf.close()
                 print("--Old file closed!--")
-                file_column.controls.clear()
                 clear_temp_folder()
+            file_column.controls.clear()
             # open new pdf, parse into PNG images, add to UI to render
             begin = time.time()
             pdf = pd.open(e.files[0].path)
@@ -192,9 +193,9 @@ def main(page: ft.Page):
             # parse the document into markdown format
             parse_document_into_markdown()
             # debugging
-            chat_messages.controls.clear()
-            chat_messages.controls.append(ft.Text(document_content))
-            chat_messages.update()
+            # chat_messages.controls.clear()
+            # chat_messages.controls.append(ft.Text(document_content))
+            # chat_messages.update()
 
     def open_file(e) -> None:
         file_picker.pick_files(initial_directory="Desktop", allowed_extensions=["pdf"])
@@ -224,5 +225,7 @@ def main(page: ft.Page):
     # render everything
     page.add(ui)
 
+    
 
 ft.app(main)
+
