@@ -3,16 +3,19 @@ from llamaindex_utils.llama_cpp_embedding import LlamaCppEmbedding
 from llama_index.llms.llama_cpp import LlamaCPP
 import time
 
-# setting our own embedding model
-Settings.embed_model = LlamaCppEmbedding(model_path="./local_models/embed/nomic-embed-text-v2-moe.Q8_0.gguf")
+# # setting our own embedding model
+# Settings.embed_model = LlamaCppEmbedding(model_path="./local_models/embed/nomic-embed-text-v2-moe.Q8_0.gguf")
+# print("Embed model name: ", Settings.embed_model.model_name)
+# # Configuring and setting or chat model
+# chat_model = LlamaCPP(model_path = "./local_models/text/mistral-7b-instruct-v0.1.Q5_0.gguf")
+# print("Chat model name: ", chat_model.model_name)
 
-# Configuring and setting or chat model
-chat_model = LlamaCPP(model_path = "./local_models/text/mistral-7b-instruct-v0.1.Q5_0.gguf")
+assert "", "can't be empty"
 
-start = time.time()
-documents = SimpleDirectoryReader("data").load_data()
-index = VectorStoreIndex.from_documents(documents)
-end = time.time()
+# start = time.time()
+# documents = SimpleDirectoryReader("data").load_data()
+# index = VectorStoreIndex.from_documents(documents)
+# end = time.time()
 
 # print("Vector Store: ", index.vector_store)
 # print("Storage Context: ", index.storage_context)

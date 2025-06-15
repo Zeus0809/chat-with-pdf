@@ -2,6 +2,7 @@ from llama_index.core.embeddings import MultiModalEmbedding
 from llama_cpp import Llama
 from typing import Optional, List
 from llama_index.core.bridge.pydantic import PrivateAttr
+import os
 
 class LlamaCppEmbedding(MultiModalEmbedding):
     """"
@@ -41,7 +42,8 @@ class LlamaCppEmbedding(MultiModalEmbedding):
             n_ctx = n_ctx,
             n_threads = n_threads,
             verbose = verbose
-        )        
+        )
+
 
     def _get_text_embedding(self, text: str) -> List[float]:
         """

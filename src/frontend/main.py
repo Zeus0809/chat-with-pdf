@@ -1,9 +1,16 @@
+import sys
+import os
+
+# Add the project root to the Python path
+project_root = os.path.join(os.path.dirname(__file__), '..', '..')
+sys.path.insert(0, project_root)
+
 import flet as ft
 import pymupdf as pd
-import os
 from typing import List
+from src.backend.agent import PDFAgent
+from src.backend import parser
 import time
-import parser
 
 # global raw document handle
 pdf = None
@@ -71,6 +78,10 @@ def main(page: ft.Page):
     page.padding = 0
     page.horizontal_alignment = ft.CrossAxisAlignment.CENTER
 
+    agent = PDFAgent() # initialize the embedding and chat models
+    # make sure models initialized properly
+    print(agent.embed_model_name)
+    print(agent.chat_model_name)
 
     file_column = ft.Column(controls=[ft.Image(src="/Users/illiakozlov/ChatWithPDF/chat-with-pdf/src/assets/logo.png", width=500, opacity=0.5)],
                             horizontal_alignment=ft.CrossAxisAlignment.CENTER,
@@ -125,17 +136,12 @@ def main(page: ft.Page):
         padding=10,
     )
 
-    def debug_parsed_content() -> None:
+    def debug_parsed_markdown() -> None:
         """
         This is a temporary function for debugging purposes.
-        Builds a string representation of the parsed content and puts it into the sidebar for debugging.
         """
         chat_messages.controls.clear()
-        content_string = ""
-        for page in document_content:
-            for block in page:
-                content_string += str(block) + "\n"
-        chat_messages.controls.append(ft.Text(content_string))
+        chat_messages.controls.append(ft.Text(document_content))
         chat_messages.update()
 
     def on_window_resize(e: ft.WindowResizeEvent) -> None:
@@ -193,9 +199,7 @@ def main(page: ft.Page):
             # parse the document into markdown format
             parse_document_into_markdown()
             # debugging
-            # chat_messages.controls.clear()
-            # chat_messages.controls.append(ft.Text(document_content))
-            # chat_messages.update()
+            debug_parsed_markdown()
 
     def open_file(e) -> None:
         file_picker.pick_files(initial_directory="Desktop", allowed_extensions=["pdf"])

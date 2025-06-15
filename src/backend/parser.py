@@ -1,6 +1,6 @@
 import pymupdf as pd
 import pymupdf4llm as pd4llm
-import structure as st
+from src.backend import structure as st
 import pprint
 from typing import List
 

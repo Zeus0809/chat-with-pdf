@@ -8,7 +8,7 @@ authors = [
     { name = "Illia Kozlov", email = "ikkit2002@gmail.com" }
 ]
 dependencies = [
-  "flet==0.28.3"
+  "flet==0.28.2"
 ]
 
 [tool.flet]
@@ -27,7 +27,7 @@ company = "IK"
 copyright = "Copyright (C) 2025 by IK"
 
 [tool.flet.app]
-path = "src"
+path = "src/frontend"
 
 # Icon configuration
 icon = "assets/icon.png"  # Path to your icon file
@@ -41,4 +41,4 @@ dev-dependencies = [
 package-mode = false
 
 [tool.poetry.group.dev.dependencies]
-flet = {extras = ["all"], version = "0.28.3"}
+flet = {extras = ["all"], version = "0.28.2"}
