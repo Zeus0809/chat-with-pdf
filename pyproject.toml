@@ -34,7 +34,7 @@ icon = "assets/icon.png"  # Path to your icon file
 
 [tool.uv]
 dev-dependencies = [
-    "flet[all]==0.28.3",
+    "flet[all]==0.28.2",
 ]
 
 [tool.poetry]

@@ -5,19 +5,21 @@ from llama_index.llms.llama_cpp import LlamaCPP
 import os
 import time
 
-class PDFAgent():
-
-    CHAT_MODELS = {
+EMBED_MODEL_PATH = "./local_models/embed/nomic-embed-text-v2-moe.Q8_0.gguf"
+CHAT_MODELS = {
         "mistral-7b" : "./local_models/text/mistral-7b-instruct-v0.1.Q5_0.gguf",
+        # Try other models during development process -> pick one in the end
     }
+
+class PDFAgent():
 
     def __init__(self):
         # Initialize embedding model
-        Settings.embed_model = LlamaCppEmbedding(model_path="./local_models/embed/nomic-embed-text-v2-moe.Q8_0.gguf", verbose=False)
-        self._embed_model_path =  "./local_models/embed/nomic-embed-text-v2-moe.Q8_0.gguf"
+        Settings.embed_model = LlamaCppEmbedding(model_path=CHAT_MODELS["mistral-7b"], verbose=False)
+        self._embed_model_path =  EMBED_MODEL_PATH
         # Initialize chat model
-        self._chat_model = LlamaCPP(model_path=self.CHAT_MODELS["mistral-7b"], verbose=False)
-        self._chat_model_path = self.CHAT_MODELS["mistral-7b"]
+        self._chat_model = LlamaCPP(model_path=CHAT_MODELS["mistral-7b"], verbose=False)
+        self._chat_model_path = CHAT_MODELS["mistral-7b"]
         # Index and query engine
         self._index = None
         self._query_engine = None

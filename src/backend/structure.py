@@ -23,7 +23,6 @@ class ContentBlock():
         self.page_position = (block_index+1, blocks_on_page)
         self.page = page
 
-
 class TextBlock(ContentBlock):
     """
     A content block that contains text. Meant for paragraphs, headings, sub-headings, etc.

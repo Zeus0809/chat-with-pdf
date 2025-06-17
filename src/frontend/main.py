@@ -9,38 +9,11 @@ import flet as ft
 import pymupdf as pd
 from typing import List
 from src.backend.agent import PDFAgent
+from src.backend.service import PDFService
 from src.backend import parser
 import time
 
-# global raw document handle
-pdf = None
-
-# global structured document handle
-document_content = None
-
-def get_page_paths() -> List[str]:
-    """
-    Returns a list of image paths, each of which represents a page from the loaded PDF file. The PNG images live in ~/storage/temp/.
-    """
-    paths = sorted([os.path.abspath(os.path.join("storage/temp", fname)) for fname in os.listdir("storage/temp")])
-    # print(paths)
-    return paths
-
-def clear_temp_folder() -> None:
-    """
-    Deletes all images (pdf pages) from ~/storage/temp/.
-    """
-    for image_path in get_page_paths():
-        os.remove(image_path)
-
-def pages_to_images(pdf: pd.Document, pdf_name: str) -> None:
-    """
-    Retrieves pages from the pdf file, converts them to PNGs and saves to ~/storage/temp/.
-    """
-    for i, page in enumerate(pdf):
-        page_png = page.get_pixmap(dpi=150)
-        page_png.save(f"storage/temp/{pdf_name[:9]}_{i:04d}.png")
-    print("--New file info retrieved!--")
+LOGO_PATH = "/Users/illiakozlov/ChatWithPDF/chat-with-pdf/src/assets/logo.png"
 
 def parse_document_into_blocks() -> None:
         """
@@ -78,12 +51,10 @@ def main(page: ft.Page):
     page.padding = 0
     page.horizontal_alignment = ft.CrossAxisAlignment.CENTER
 
-    agent = PDFAgent() # initialize the embedding and chat models
-    # make sure models initialized properly
-    print(agent.embed_model_name)
-    print(agent.chat_model_name)
+    # Initialize backend service, that also initializes the agent
+    service = PDFService()
 
-    file_column = ft.Column(controls=[ft.Image(src="/Users/illiakozlov/ChatWithPDF/chat-with-pdf/src/assets/logo.png", width=500, opacity=0.5)],
+    file_column = ft.Column(controls=[ft.Image(src=LOGO_PATH, width=500, opacity=0.5)],
                             horizontal_alignment=ft.CrossAxisAlignment.CENTER,
                             expand=True, scroll=ft.ScrollMode.AUTO)
 
@@ -178,28 +149,20 @@ def main(page: ft.Page):
     def on_dialog_result(e: ft.FilePickerResultEvent) -> None:
         # only process if user opened a file, not cancelled
         if e.files != None:
-            # clear existing pdf
-            global pdf
-            if pdf is not None:
-                pdf.close()
-                print("--Old file closed!--")
-                clear_temp_folder()
+            # clear old pdf from UI
             file_column.controls.clear()
-            # open new pdf, parse into PNG images, add to UI to render
-            begin = time.time()
-            pdf = pd.open(e.files[0].path)
-            pages_to_images(pdf, e.files[0].name)
-            paths = get_page_paths()
-            image_pages = [ft.Image(src=path, fit=ft.ImageFit.CONTAIN) for path in paths]
+            # load new pdf (returns a list of image paths to use in the UI)
+            image_paths = service.load_pdf(e.files[0].path)
+            image_pages = [ft.Image(src=path, fit=ft.ImageFit.CONTAIN) for path in image_paths]
             image_containers = [ft.Container(content=image_page, padding=10) for image_page in image_pages]
             file_column.controls.extend(image_containers)
             file_column.update()
-            end = time.time()
-            print(f"--{len(file_column.controls)} pages from {e.files[0].name} rendered in {round(end-begin, 2)}s!--")
+            print(f"--{len(file_column.controls)} pages from {e.files[0].name} rendered!--")
             # parse the document into markdown format
-            parse_document_into_markdown()
-            # debugging
-            debug_parsed_markdown()
+            # parse_document_into_markdown()
+            # debug_parsed_markdown()
+            # create index
+            
 
     def open_file(e) -> None:
         file_picker.pick_files(initial_directory="Desktop", allowed_extensions=["pdf"])
