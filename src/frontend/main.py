@@ -1,50 +1,13 @@
-import sys
-import os
+import sys, os
+import flet as ft
+from typing import Any
+from src.backend.service import PDFService
 
 # Add the project root to the Python path
 project_root = os.path.join(os.path.dirname(__file__), '..', '..')
 sys.path.insert(0, project_root)
 
-import flet as ft
-import pymupdf as pd
-from typing import List
-from src.backend.agent import PDFAgent
-from src.backend.service import PDFService
-from src.backend import parser
-import time
-
 LOGO_PATH = "/Users/illiakozlov/ChatWithPDF/chat-with-pdf/src/assets/logo.png"
-
-def parse_document_into_blocks() -> None:
-        """
-        Parses the loaded PDF into structured content blocks using parser.build_page_content(). 
-        """
-        assert pdf is not None, "No PDF document loaded: global handle is None."
-        print("\n--Parsing document...--\n")
-        global document_content
-        document_content = []
-        total_t = 0
-        for page in pdf:
-            start = time.time()
-            page_content = parser.build_page_content(page)
-            document_content.append(page_content)
-            end = time.time()
-            t = round(end-start, 2)
-            total_t += t
-            print(f"--Page {page.number+1} parsed in {t}s.--")
-        print(f"\n--Document parsed in {round(total_t, 2)}s.--\n")
-
-def parse_document_into_markdown() -> None:
-        """
-        Parses the loaded PDF into markdown using parser.get_page_markdown(). 
-        """
-        assert pdf is not None, "No PDF document loaded: global handle is None."
-        print("\n--Parsing document...--\n")
-        global document_content
-        starttime = time.time()
-        document_content = parser.get_doc_markdown(pdf)
-        endtime = time.time()
-        print(f"\n--Document parsed in {round(endtime-starttime, 2)}s.--\n")
 
 def main(page: ft.Page):
     page.title = "Chat With PDF"
@@ -107,12 +70,12 @@ def main(page: ft.Page):
         padding=10,
     )
 
-    def debug_parsed_markdown() -> None:
+    def debug_parsed_content(content: Any) -> None:
         """
         This is a temporary function for debugging purposes.
         """
         chat_messages.controls.clear()
-        chat_messages.controls.append(ft.Text(document_content))
+        chat_messages.controls.append(ft.Text(content))
         chat_messages.update()
 
     def on_window_resize(e: ft.WindowResizeEvent) -> None:
@@ -147,7 +110,10 @@ def main(page: ft.Page):
         sidebar.update()
 
     def on_dialog_result(e: ft.FilePickerResultEvent) -> None:
-        # only process if user opened a file, not cancelled
+        """
+        Kicks off the PDF loading process when a file is selected.
+        Renders pages as images in the UI.
+        """
         if e.files != None:
             # clear old pdf from UI
             file_column.controls.clear()
@@ -157,12 +123,7 @@ def main(page: ft.Page):
             image_containers = [ft.Container(content=image_page, padding=10) for image_page in image_pages]
             file_column.controls.extend(image_containers)
             file_column.update()
-            print(f"--{len(file_column.controls)} pages from {e.files[0].name} rendered!--")
-            # parse the document into markdown format
-            # parse_document_into_markdown()
-            # debug_parsed_markdown()
-            # create index
-            
+            print(f"--{len(file_column.controls)} pages from {e.files[0].name} rendered!--") 
 
     def open_file(e) -> None:
         file_picker.pick_files(initial_directory="Desktop", allowed_extensions=["pdf"])

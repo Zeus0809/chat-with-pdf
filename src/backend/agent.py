@@ -1,10 +1,8 @@
 from llama_index.core import VectorStoreIndex, Document, Settings
-from llama_index.core.base.base_query_engine import BaseQueryEngine
 from llamaindex_utils.llama_cpp_embedding import LlamaCppEmbedding
 from llama_index.llms.llama_cpp import LlamaCPP
-import os
-import time
-
+import os, time
+        
 EMBED_MODEL_PATH = "./local_models/embed/nomic-embed-text-v2-moe.Q8_0.gguf"
 CHAT_MODELS = {
         "mistral-7b" : "./local_models/text/mistral-7b-instruct-v0.1.Q5_0.gguf",

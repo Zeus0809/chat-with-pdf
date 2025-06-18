@@ -1,10 +1,8 @@
 import pymupdf as pd
 from typing import List, Optional
 from src.backend.agent import PDFAgent
-from src.backend.structure import ContentBlock
-from src.backend import parser
-import time
-import os
+from src.backend.parser import PDFParser
+import time, os
 
 class PDFService:
     """
@@ -12,8 +10,7 @@ class PDFService:
     """
     def __init__(self):
         self.pdf: Optional[pd.Document] = None  # raw document handle
-        self.pdf_markdown: Optional[str] = None  # markdown representation of the document
-        self.pdf_blocks: Optional[ContentBlock] = None  # structured document handle
+        self.parser = PDFParser() # dependency injection for the parser
         self.agent = PDFAgent() # dependency injection for the agent
         # make sure storage/ui exists
         os.makedirs("storage/ui", exist_ok=True)
@@ -32,6 +29,11 @@ class PDFService:
 
         self.convert_pages_to_images(os.path.basename(file_path))
         print(f"-*-File {os.path.basename(file_path)} loaded successfully in {round(time.time()-start, 2)}s!-*-")
+
+        # run the parsing (change to async later)
+        self.parser.parse_to_markdown(self.pdf)
+        self.parser.parse_to_blocks(self.pdf)
+
         return self.get_image_paths()
 
     def discard_pdf(self) -> None:
@@ -42,6 +44,7 @@ class PDFService:
             self.pdf.close()
             print("--Old file closed!--")
             self.clear_ui_folder()
+            self.parser.clear_parsed_content()
 
     def convert_pages_to_images(self, file_name: str) -> None:
         """
@@ -71,6 +74,7 @@ class PDFService:
         print("--UI folder cleared!--")
 
 
+        
 
     
 
