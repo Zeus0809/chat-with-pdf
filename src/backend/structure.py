@@ -52,27 +52,28 @@ class TextBlock(ContentBlock):
 
 class ImageBlock(ContentBlock):
     """
-    A content block that contains an image and its data. Meant to pass image data to a VLM for description and later vectorization.
+    A content block that contains an image and its data. Meant to store structured image content and metadata.
     """
     def __init__(self, pos:tuple,
                  block_index:int,
                  blocks_on_page:int,
                  page:int,
-                 blob:bytes):
-        
+                 caption:str): # caption should be result of BLIP processing
+    
         # initialize parent
         super().__init__(pos, block_index, blocks_on_page, page)
 
-        assert isinstance(blob, bytes), "Image blob must be of type 'bytes'."
+        assert isinstance(caption, str), f"Caption must be a string, instead got {type(caption)}."
 
         # set image attributes
-        self.blob = blob
         self.size = self.width * self.height
+        self.caption = caption
 
     def __str__(self):
         result = f"Image block at: ({self.x0}, {self.y0}) - ({self.x1}, {self.y1})\n"
         result += f"Of size: {self.width} x {self.height} pt\n"
         result += f"Order: {self.page_position[0]} of {self.page_position[1]} on page {self.page}\n"
+        result += f"Captioned: {self.caption}\n"
         return result
 
 

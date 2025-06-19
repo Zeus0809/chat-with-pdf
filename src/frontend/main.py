@@ -1,11 +1,12 @@
 import sys, os
-import flet as ft
-from typing import Any
-from src.backend.service import PDFService
 
 # Add the project root to the Python path
 project_root = os.path.join(os.path.dirname(__file__), '..', '..')
 sys.path.insert(0, project_root)
+
+import flet as ft
+from typing import Any
+from src.backend.service import PDFService
 
 LOGO_PATH = "/Users/illiakozlov/ChatWithPDF/chat-with-pdf/src/assets/logo.png"
 

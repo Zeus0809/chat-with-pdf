@@ -1,8 +1,12 @@
 import pymupdf as pd
 import pymupdf4llm as pd4llm
 from src.backend import structure as st
+from transformers import BlipProcessor, BlipForConditionalGeneration
 from typing import List, Optional
-import pprint, time
+import pprint, time, io
+from PIL import Image
+
+BLIP_MODEL_PATH = "./local_models/vision/blip_large"
 
 class PDFParser:
     """
@@ -11,6 +15,18 @@ class PDFParser:
     def __init__(self):
         self.pdf_markdown: Optional[str] = None  # markdown representation of the document
         self.pdf_blocks: Optional[List[List[st.ContentBlock]]] = None  # structured document handle 
+        self._blip_processor: BlipProcessor = None
+        self._blip_model: BlipForConditionalGeneration = None
+
+    def _load_blip_model(self) -> None:
+        """
+        Loads the BLIP model for image captioning. Loading is done on-demand.
+        """
+        if self._blip_processor is None:
+            self._blip_processor = BlipProcessor.from_pretrained(BLIP_MODEL_PATH)
+            self._blip_model = BlipForConditionalGeneration.from_pretrained(BLIP_MODEL_PATH)
+        else:
+            print("--BLIP model already loaded--")
 
     def _get_full_text(self, text_block: dict) -> str:
         """
@@ -65,12 +81,14 @@ class PDFParser:
                 content.append(text_block)
 
             elif "image" in block_keys:
+                # run image captioning
+                caption = self.image_to_text(block.get("image"))
                 # create image object
                 image_block = st.ImageBlock(pos=block.get("bbox"),
                                             block_index=block.get("number"),
                                             blocks_on_page=len(blocks),
                                             page=page.number + 1,
-                                            blob=block.get("image"))
+                                            caption=caption)
                 content.append(image_block)
             else:
                 content.append("404: unknown type")
@@ -98,7 +116,7 @@ class PDFParser:
             self.pdf_blocks.append(page_content)
         time_taken = round(time.time() - start, 2)
         # temporary
-        self.debug_parsed_blocks(time_taken)
+        # self.debug_parsed_blocks(time_taken)
 
     def debug_parsed_blocks(self, time_taken: float) -> None:
         """
@@ -109,6 +127,7 @@ class PDFParser:
         print("\n###-Parsed-Blocks-Start-###")
         for page in self.pdf_blocks:
             for block in page:
+                print(block)
                 block_count += 1
         print(f"###-Parsed-Blocks-End-(parsed {block_count} blocks in {time_taken}s)###\n")
 
@@ -120,4 +139,17 @@ class PDFParser:
         self.pdf_blocks = None
         print("--Parsed content cleared!--")
 
-
+    def image_to_text(self, blob: bytes) -> str:
+        """
+        Uses the BLIP model to generate a caption for an image blob.
+        """
+        assert isinstance(self._blip_processor, BlipProcessor), "BLIP model not loaded. Please call _load_blip_model() first."
+        assert isinstance(blob, bytes), "Image blob must be of type 'bytes'."
+        start = time.time()
+        image = Image.open(io.BytesIO(blob)).convert("RGB")
+        inputs = self._blip_processor(image, return_tensors="pt")
+        outputs = self._blip_model.generate(**inputs)
+        caption = self._blip_processor.decode(outputs[0], skip_special_tokens=True)
+        print(f"--BLIP caption generated in {round(time.time() - start, 2)}s:--")
+        # print(f"{caption}\n")
+        return caption

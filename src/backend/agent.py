@@ -8,7 +8,7 @@ CHAT_MODELS = {
         "mistral-7b" : "./local_models/text/mistral-7b-instruct-v0.1.Q5_0.gguf",
         # Try other models during development process -> pick one in the end
     }
-
+ 
 class PDFAgent():
 
     def __init__(self):
@@ -59,7 +59,6 @@ class PDFAgent():
         response = self._query_engine.query(prompt)
         print(f"--Agent response generated in {round(time.time() - start, 2)} seconds--")
         print(f"Response type: {type(response)}, \nResponse itself: {response}")
-
 
 
     
