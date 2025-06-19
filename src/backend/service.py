@@ -30,11 +30,8 @@ class PDFService:
         self.convert_pages_to_images(os.path.basename(file_path))
         print(f"-*-File {os.path.basename(file_path)} loaded successfully in {round(time.time()-start, 2)}s!-*-")
 
-        # # load the BLIP model for image captioning
-        self.parser._load_blip_model()
-
-        # # run the parsing (change to async later)
-        # self.parser.parse_to_markdown(self.pdf)
+        # run the parsing (change to async later)
+        self.parser.parse_to_markdown(self.pdf)
         self.parser.parse_to_blocks(self.pdf)
 
         return self.get_image_paths()

@@ -27,6 +27,8 @@ class PDFParser:
             self._blip_model = BlipForConditionalGeneration.from_pretrained(BLIP_MODEL_PATH)
         else:
             print("--BLIP model already loaded--")
+        assert isinstance(self._blip_processor, BlipProcessor), f"BLIP processor failed to load. The attribute is of type {type(self._blip_processor)} instead of BlipProcessor."
+        assert isinstance(self._blip_model, BlipForConditionalGeneration), f"BLIP model failed to load. The attribute is of type {type(self._blip_model)} instead of BlipForConditionalGeneration."
 
     def _get_full_text(self, text_block: dict) -> str:
         """
@@ -81,6 +83,8 @@ class PDFParser:
                 content.append(text_block)
 
             elif "image" in block_keys:
+                # lazy-load BLIP model
+                self._load_blip_model()
                 # run image captioning
                 caption = self.image_to_text(block.get("image"))
                 # create image object
@@ -143,7 +147,6 @@ class PDFParser:
         """
         Uses the BLIP model to generate a caption for an image blob.
         """
-        assert isinstance(self._blip_processor, BlipProcessor), "BLIP model not loaded. Please call _load_blip_model() first."
         assert isinstance(blob, bytes), "Image blob must be of type 'bytes'."
         start = time.time()
         image = Image.open(io.BytesIO(blob)).convert("RGB")
@@ -151,5 +154,5 @@ class PDFParser:
         outputs = self._blip_model.generate(**inputs)
         caption = self._blip_processor.decode(outputs[0], skip_special_tokens=True)
         print(f"--BLIP caption generated in {round(time.time() - start, 2)}s:--")
-        # print(f"{caption}\n")
+        assert isinstance(caption, str), f"BLIP caption must be a string, instead model produced {type(caption)}."
         return caption
