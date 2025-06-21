@@ -5,7 +5,6 @@ project_root = os.path.join(os.path.dirname(__file__), '..', '..')
 sys.path.insert(0, project_root)
 
 import flet as ft
-from typing import Any
 from src.backend.service import PDFService
 
 LOGO_PATH = "/Users/illiakozlov/ChatWithPDF/chat-with-pdf/src/assets/logo.png"
@@ -71,7 +70,7 @@ def main(page: ft.Page):
         padding=10,
     )
 
-    def debug_parsed_content(content: Any) -> None:
+    def display_parsed_content(content: str) -> None:
         """
         This is a temporary function for debugging purposes.
         """
@@ -124,7 +123,9 @@ def main(page: ft.Page):
             image_containers = [ft.Container(content=image_page, padding=10) for image_page in image_pages]
             file_column.controls.extend(image_containers)
             file_column.update()
-            print(f"--{len(file_column.controls)} pages from {e.files[0].name} rendered!--") 
+            print(f"--{len(file_column.controls)} pages from {e.files[0].name} rendered!--")
+            # debug parsed content
+            display_parsed_content(service.parser.debug_parsed_blocks())
 
     def open_file(e) -> None:
         file_picker.pick_files(initial_directory="Desktop", allowed_extensions=["pdf"])

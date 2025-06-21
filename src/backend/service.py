@@ -12,8 +12,9 @@ class PDFService:
         self.pdf: Optional[pd.Document] = None  # raw document handle
         self.parser = PDFParser() # dependency injection for the parser
         self.agent = PDFAgent() # dependency injection for the agent
-        # make sure storage/ui exists
+        # make sure storage/ui exists and clear it
         os.makedirs("storage/ui", exist_ok=True)
+        self._clear_ui_folder()
 
     def load_pdf(self, file_path: str) -> List[str]:
         """
@@ -21,32 +22,33 @@ class PDFService:
         Returns a list of image paths for each page in the PDF to be rendered in the UI.
         """
         start = time.time()
-        self.discard_pdf()
+        self._discard_pdf()
 
         assert os.path.exists(file_path), f"File {file_path} does not exist on the disk."
         self.pdf = pd.open(file_path)
         assert self.pdf is not None, "PyMuPDF failed to load the document."
 
-        self.convert_pages_to_images(os.path.basename(file_path))
+        self._convert_pages_to_images(os.path.basename(file_path))
         print(f"-*-File {os.path.basename(file_path)} loaded successfully in {round(time.time()-start, 2)}s!-*-")
 
         # run the parsing (change to async later)
-        self.parser.parse_to_markdown(self.pdf)
         self.parser.parse_to_blocks(self.pdf)
 
-        return self.get_image_paths()
 
-    def discard_pdf(self) -> None:
+
+        return self._get_image_paths()
+
+    def _discard_pdf(self) -> None:
         """
         Discards the currently loaded file and clears all related data to prepare for a new file.
         """
         if self.pdf is not None:
             self.pdf.close()
             print("--Old file closed!--")
-            self.clear_ui_folder()
+            self._clear_ui_folder()
             self.parser.clear_parsed_content()
 
-    def convert_pages_to_images(self, file_name: str) -> None:
+    def _convert_pages_to_images(self, file_name: str) -> None:
         """
         Converts each page of the loaded PDF into a PNG image and saves them to ~/storage/ui for rendering.
         """
@@ -56,7 +58,7 @@ class PDFService:
             page_png.save(f"storage/ui/{file_name[:9]}_{i:04d}.png")
         print("--UI images created!--")
 
-    def get_image_paths(self) -> List[str]:
+    def _get_image_paths(self) -> List[str]:
         """
         Returns a list of image paths, each of which represents a page from the loaded PDF file. The images live in ~/storage/ui/.
         """
@@ -65,13 +67,14 @@ class PDFService:
         paths = sorted([os.path.abspath(os.path.join("storage/ui", fname)) for fname in os.listdir("storage/ui")])
         return paths
 
-    def clear_ui_folder(self) -> None:
+    def _clear_ui_folder(self) -> None:
         """
-        Deletes all images (pdf pages) from ~/storage/ui/.
+        Deletes all images (pdf pages) from ~/storage/ui/ provided the folder is not empty.
         """
-        for image in self.get_image_paths():
-            os.remove(image)
-        print("--UI folder cleared!--")
+        if os.listdir("storage/ui"):
+            for image in self._get_image_paths():
+                os.remove(image)
+            print("--UI folder cleared!--")
 
 
         
