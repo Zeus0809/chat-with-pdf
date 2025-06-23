@@ -23,6 +23,23 @@ class ContentBlock():
         self.page_position = (block_index+1, blocks_on_page)
         self.page = page
 
+    def _get_metadata(self) -> dict:
+        """
+        Generates metadata for content block. Children should customize this method.
+        """
+        return {
+            'page_number': self.page,
+            'coordinates_on_page': [self.x0, self.y0, self.x1, self.y1]
+            # 'reading_order': self.page_position[0],
+        }
+
+    def generate_chunk(self) -> dict:
+        """
+        Generates a chunk of content with metadata for LlamaIndex embedding.
+        This method should be overridden by child classes.
+        """
+        raise NotImplementedError("This method should be implemented in child classes.")
+
 class TextBlock(ContentBlock):
     """
     A content block that contains text. Meant for paragraphs, headings, sub-headings, etc.
@@ -44,10 +61,48 @@ class TextBlock(ContentBlock):
         assert isinstance(content_type, str), f"Content type must be a string, instead got {type(content_type)}."
 
         # set text attributes
-        self.text = text
+        self.text = text.strip()
         self.font_size = font_size
         self.font_styles = font_styles
         self.content_type = content_type
+
+    def _get_clean_content(self) -> str:
+        """
+        Returns clean semantic text content optimized for embeddings.
+        """
+        if self.content_type == "heading":
+            return f"Section: {self.text}"
+        elif self.content_type == "sub-heading":
+            return f"Subsection: {self.text}"
+        elif self.content_type == "list_item":
+            return f"List item: {self.text}"
+        elif self.content_type == "footnote":
+            return f"Note: {self.text}"
+        else:
+            return self.text
+ 
+    def _get_metadata(self) -> dict:
+        """
+        Generates metadata for the text block.
+        """
+        metadata = super()._get_metadata()
+        metadata.update({
+            'font_styles': list(self.font_styles),
+            'content_type': self.content_type,
+            'block_type': 'text'
+        })
+        if self.font_size != -1:
+            metadata['font_size'] = self.font_size # only supply font size if block has uniform content
+        return metadata
+
+    def generate_chunk(self) -> dict:
+        """
+        Generates a chunk of text with metadata for LlamaIndex embedding.
+        """
+        return {
+            'content': self._get_clean_content(),
+            'metadata': self._get_metadata()
+        }
 
     def __str__(self):
         result = f"Text block at: ({self.x0}, {self.y0}) - ({self.x1}, {self.y1})\n"
@@ -77,6 +132,26 @@ class ImageBlock(ContentBlock):
         # set image attributes
         self.size = self.width * self.height
         self.caption = caption
+
+    def _get_metadata(self) -> dict:
+        """
+        Generates metadata for the image block.
+        """
+        metadata = super()._get_metadata()
+        metadata.update({
+            'image_size': self.size,
+            'block_type': 'image'
+        })
+        return metadata
+
+    def generate_chunk(self) -> dict:
+        """
+        Generates an image chunk with metadata for LlamaIndex embedding.
+        """
+        return {
+            'content': f"Image description: {self.caption}",
+            'metadata': self._get_metadata()
+        }
 
     def __str__(self):
         result = f"Image block at: ({self.x0}, {self.y0}) - ({self.x1}, {self.y1})\n"

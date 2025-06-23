@@ -125,7 +125,7 @@ def main(page: ft.Page):
             file_column.update()
             print(f"--{len(file_column.controls)} pages from {e.files[0].name} rendered!--")
             # debug parsed content
-            display_parsed_content(service.parser.debug_parsed_blocks())
+            display_parsed_content(service.parser.debug_chunks())
 
     def open_file(e) -> None:
         file_picker.pick_files(initial_directory="Desktop", allowed_extensions=["pdf"])

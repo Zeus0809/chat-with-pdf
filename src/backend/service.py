@@ -34,6 +34,8 @@ class PDFService:
         # run the parsing (change to async later)
         self.parser.parse_to_blocks(self.pdf)
 
+        # run chunk generation
+        self.parser.build_chunked_content()
 
 
         return self._get_image_paths()

@@ -3,7 +3,7 @@ import pymupdf4llm as pd4llm
 from src.backend import structure as st
 from transformers import BlipProcessor, BlipForConditionalGeneration
 from typing import List, Optional
-import pprint, time, io, string
+import pprint, time, io, string, re
 from PIL import Image
 
 BLIP_MODEL_PATH = "./local_models/vision/blip_large"
@@ -35,7 +35,8 @@ LETTERED_PATTERNS = (
 # Combined list item characters
 LIST_ITEM_CHARS = BULLET_SYMBOLS + NUMBERED_PATTERNS + LETTERED_PATTERNS
 
-MAX_BULLET_NUM = 50
+MAX_BULLET_NUM = 50 # max number for numbered lists to be considered as such
+SUB_HEADING_MAX_WORDS = 5  # max words in a sub-heading to be considered as such
 
 class PDFParser:
     """
@@ -43,8 +44,8 @@ class PDFParser:
     Meant to construct a rich representation of the document content to be passed to LlamaIndex.
     """
     def __init__(self):
-        self.pdf_markdown: Optional[str] = None  # markdown representation of the document
-        self.pdf_blocks: Optional[List[List[st.ContentBlock]]] = None  # structured document handle 
+        self.pdf_chunks: Optional[List[dict]] = None  # chunked representation of the document for LlamaIndex embedding, built from pdf_blocks
+        self.pdf_blocks: Optional[List[List[st.ContentBlock]]] = None  # structured document handle
         self._content_type_analysis: Optional[dict] = None # a map that relates font sizes, their frequency, and corresponding content type
         self._pdf_char_count: int = 0
         self._blip_processor: BlipProcessor = None
@@ -74,6 +75,18 @@ class PDFParser:
                 full_text += (span.get("text") + " ")
                 # print(f"--***--Span text: {span.get('text')}; Font size: {span.get('size', 0)}--***--")     
         return full_text.strip()
+
+    def count_words(text: str) -> int:
+        """
+        Count words in text, handling PDF extraction artifacts.
+        """
+        if not text or not text.strip():
+            return 0
+        # Remove extra whitespace and normalize
+        cleaned_text = re.sub(r'\s+', ' ', text.strip())
+        # Count word-like sequences
+        words = re.findall(r'\b\w+\b', cleaned_text)
+        return len(words)
 
     def _analyze_content_types(self, doc: pd.Document) -> None:
         """
@@ -197,7 +210,17 @@ class PDFParser:
         # Classify blocks into headings, sub-headings, body text, footnotes, and other based on content type analysis
         for font_size in self._content_type_analysis.keys():
             if block_font_size == font_size:
-                return self._content_type_analysis[font_size]["content_type"] 
+
+                # handle case when sub-headings are as big as body_text but short and bold (e.g. **Required Information**, **Sub-category 'Corrosive'**)
+                if (self._content_type_analysis[font_size]["content_type"] == "body_text"
+                    and PDFParser.count_words(block_text) <= SUB_HEADING_MAX_WORDS
+                    and "bold" in block_font_styles):
+                        return "sub-heading"
+                
+                # handle image captions: italicized text appearing immediately before or after image
+
+                else:
+                    return self._content_type_analysis[font_size]["content_type"] 
 
     def _build_page_content(self, page: pd.Page) -> List[st.ContentBlock]:
         """
@@ -244,14 +267,18 @@ class PDFParser:
 
         return content
 
-    def parse_to_markdown(self, doc: pd.Document) -> str:
+    def build_chunked_content(self) -> None:
         """
-        Returns a markdown representation of the document content.
+        Returns a list of content chunks with separate metadata for LlamaIndex Document creation.
+        This approach keeps embeddings clean while preserving rich metadata.
         """
-        assert isinstance(doc, pd.Document), f"'doc' must be a pymupdf Document object. Instead got {type(doc)}."
-        start = time.time()
-        self.pdf_markdown = pd4llm.to_markdown(doc=doc, show_progress=True)
-        print(f"\n###-Markdown-Start-###\n{self.pdf_markdown}\n###-Markdown-End-(parsed in {round(time.time()-start, 2)}s)###\n")
+        assert self.pdf_blocks is not None, "No blocks parsed yet. Please call PDFParser.parse_to_blocks() first."
+        
+        self.pdf_chunks = []
+        for page in self.pdf_blocks:
+            for block in page:
+                assert isinstance(block, st.ContentBlock), f"Block must be a ContentBlock instance. Instead got {type(block)}."
+                self.pdf_chunks.append(block.generate_chunk())
 
     def parse_to_blocks(self, doc: pd.Document) -> None:
         """
@@ -286,6 +313,22 @@ class PDFParser:
         footer = f"\n###-Parsed-Blocks-End-({block_count})###"
 
         return header + body + footer
+
+    def debug_chunks(self) -> str:
+        """
+        Return pretty-printed representation of the chunked content for debugging purposes.
+        """
+        assert self.pdf_chunks is not None, "No chunks created yet. Please call PDFParser.build_chunked_content() first."
+        
+        header = "###-Chunked-Content-Start-###\n"
+        body = ""
+        for chunk in self.pdf_chunks:
+            assert isinstance(chunk, dict), f"Chunk must be a dictionary. Instead got {type(chunk)}."
+            body += pprint.pformat(chunk) + "\n"
+        footer = "\n###-Chunked-Content-End###"
+
+        return header + body + footer
+        
 
     def clear_parsed_content(self) -> None:
         """
