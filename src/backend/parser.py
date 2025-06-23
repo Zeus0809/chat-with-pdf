@@ -51,6 +51,19 @@ class PDFParser:
         self._blip_processor: BlipProcessor = None
         self._blip_model: BlipForConditionalGeneration = None
 
+    @staticmethod
+    def _count_words(text: str) -> int:
+            """
+            Count words in text, handling PDF extraction artifacts.
+            """
+            if not text or not text.strip():
+                return 0
+            # Remove extra whitespace and normalize
+            cleaned_text = re.sub(r'\s+', ' ', text.strip())
+            # Count word-like sequences
+            words = re.findall(r'\b\w+\b', cleaned_text)
+            return len(words)
+
     def _load_blip_model(self) -> None:
         """
         Loads the BLIP model for image captioning. Loading is done on-demand.
@@ -75,18 +88,6 @@ class PDFParser:
                 full_text += (span.get("text") + " ")
                 # print(f"--***--Span text: {span.get('text')}; Font size: {span.get('size', 0)}--***--")     
         return full_text.strip()
-
-    def count_words(text: str) -> int:
-        """
-        Count words in text, handling PDF extraction artifacts.
-        """
-        if not text or not text.strip():
-            return 0
-        # Remove extra whitespace and normalize
-        cleaned_text = re.sub(r'\s+', ' ', text.strip())
-        # Count word-like sequences
-        words = re.findall(r'\b\w+\b', cleaned_text)
-        return len(words)
 
     def _analyze_content_types(self, doc: pd.Document) -> None:
         """
@@ -213,7 +214,7 @@ class PDFParser:
 
                 # handle case when sub-headings are as big as body_text but short and bold (e.g. **Required Information**, **Sub-category 'Corrosive'**)
                 if (self._content_type_analysis[font_size]["content_type"] == "body_text"
-                    and PDFParser.count_words(block_text) <= SUB_HEADING_MAX_WORDS
+                    and self._count_words(block_text) <= SUB_HEADING_MAX_WORDS
                     and "bold" in block_font_styles):
                         return "sub-heading"
                 
@@ -222,7 +223,7 @@ class PDFParser:
                 else:
                     return self._content_type_analysis[font_size]["content_type"] 
 
-    def _build_page_content(self, page: pd.Page) -> List[st.ContentBlock]:
+    def _build_page_blocks(self, page: pd.Page) -> List[st.ContentBlock]:
         """
         Builds a list of content blocks (different classes based on content) from a pymupdf page object.
         Data is extracted as a dict.
@@ -263,13 +264,13 @@ class PDFParser:
                                             caption=caption)
                 content.append(image_block)
             else:
-                content.append("404: unknown type")
+                content.append("404: unknown block type")
 
         return content
 
-    def build_chunked_content(self) -> None:
+    def build_rich_chunked_content(self) -> None:
         """
-        Returns a list of content chunks with separate metadata for LlamaIndex Document creation.
+        Produces a list of content chunks with separate metadata for LlamaIndex Document creation, stores it in self.pdf_chunks.
         This approach keeps embeddings clean while preserving rich metadata.
         """
         assert self.pdf_blocks is not None, "No blocks parsed yet. Please call PDFParser.parse_to_blocks() first."
@@ -282,17 +283,17 @@ class PDFParser:
 
     def parse_to_blocks(self, doc: pd.Document) -> None:
         """
-        Parses the document into structured content blocks from structure.py.
+        Parses the document into structured content blocks from structure.py, stored in self.pdf_blocks.
         """
         assert isinstance(doc, pd.Document), f"'doc' must be a pymupdf Document object. Instead got {type(doc)}."
 
-        # run font size analysis first to create content types -> they will be used in _build_page_content()
+        # run font size analysis first to create content types -> they will be used in _build_page_blocks()
         self._analyze_content_types(doc)
 
         start = time.time()
         self.pdf_blocks = []
         for page in doc:
-            page_content = self._build_page_content(page)
+            page_content = self._build_page_blocks(page)
             self.pdf_blocks.append(page_content)
         time_taken = round(time.time() - start, 2)
         print(f"--Parsed document into blocks in {time_taken}s--")
@@ -329,7 +330,6 @@ class PDFParser:
 
         return header + body + footer
         
-
     def clear_parsed_content(self) -> None:
         """
         Clears the parsed content to prepare for a new document.

@@ -1,8 +1,9 @@
 from llama_index.core import VectorStoreIndex, Document, Settings
 from llamaindex_utils.llama_cpp_embedding import LlamaCppEmbedding
 from llama_index.llms.llama_cpp import LlamaCPP
+from typing import List
 import os, time
-        
+
 EMBED_MODEL_PATH = "./local_models/embed/nomic-embed-text-v2-moe.Q8_0.gguf"
 CHAT_MODELS = {
         "mistral-7b" : "./local_models/text/mistral-7b-instruct-v0.1.Q5_0.gguf",
@@ -13,7 +14,7 @@ class PDFAgent():
 
     def __init__(self):
         # Initialize embedding model
-        Settings.embed_model = LlamaCppEmbedding(model_path=CHAT_MODELS["mistral-7b"], verbose=False)
+        Settings.embed_model = LlamaCppEmbedding(model_path=EMBED_MODEL_PATH, verbose=False)
         self._embed_model_path =  EMBED_MODEL_PATH
         # Initialize chat model
         self._chat_model = LlamaCPP(model_path=CHAT_MODELS["mistral-7b"], verbose=False)
@@ -37,28 +38,40 @@ class PDFAgent():
     def get_index_summary(self) -> str:
         return self._index.summary
 
-    def create_index_from_markdown(self, markdown: str, metadata: dict=None) -> None:
+    def create_index_from_chunks(self, chunks: List[dict]) -> None:
         """
-        Creates a vector store index from the provided markdown content and supplies a query engine.
+        Creates a vector store index from content chunks with rich metadata.
+        Each chunk becomes a separate Document for better retrieval granularity.
         """
-        assert markdown, "Markdown content cannot be empty."
+        assert isinstance(chunks, list), f"Chunks should be a list, instead got {type(chunks)}."
+
         start = time.time()
-        document = Document(text=markdown, metadata=metadata or {})
-        self._index = VectorStoreIndex.from_documents([document])
+
+        # Create LlamaIndex documents from prepared chunks
+        documents = []
+        for chunk in chunks:
+            assert isinstance(chunk, dict), f"Each chunk should be a dictionary, instead got {type(chunk)}."
+            doc = Document(
+                text=chunk['content'],
+                metadata=chunk['metadata']
+            )
+            documents.append(doc)
+
+        self._index = VectorStoreIndex.from_documents(documents, show_progress=True)
         assert self._index is not None, "Index is None. Create an index before creating a query engine."
         self._query_engine = self._index.as_query_engine(llm=self._chat_model)
         print(f"--Index created in {round(time.time() - start, 2)} seconds--")
 
     def ask_agent(self, prompt: str) -> str:
         """
-        Asks the agent q question from the user and returns the response.
+        Asks the agent a question from the user and returns the response.
         """
-        assert prompt, "Prompt cannot be empty."
-        assert self._query_engine is not None, "Query engine is None. Create an index from your document before asking the agent."
+        assert isinstance(prompt, str), f"Prompt should be a stirng, instead got {type(prompt)}."
+        assert self._query_engine is not None, "Query engine is None. Please call PDFAgent.create_index_from_chunks() before asking the agent."
         start = time.time()
         response = self._query_engine.query(prompt)
-        print(f"--Agent response generated in {round(time.time() - start, 2)} seconds--")
-        print(f"Response type: {type(response)}, \nResponse itself: {response}")
+        print(f"--Agent response generated in {round(time.time() - start, 2)} seconds--\n")
+        print(f"-*-Response type: {type(response)}, \n-*-Response itself: {response}")
 
 
     

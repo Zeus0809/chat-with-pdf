@@ -35,8 +35,10 @@ class PDFService:
         self.parser.parse_to_blocks(self.pdf)
 
         # run chunk generation
-        self.parser.build_chunked_content()
+        self.parser.build_rich_chunked_content()
 
+        # create an index and a query engine
+        self.agent.create_index_from_chunks(self.parser.pdf_chunks)
 
         return self._get_image_paths()
 
