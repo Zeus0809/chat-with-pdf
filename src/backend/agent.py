@@ -9,7 +9,7 @@ CHAT_MODELS = {
         "mistral-7b" : "./local_models/text/mistral-7b-instruct-v0.1.Q5_0.gguf",
         # Try other models during development process -> pick one in the end
     }
- 
+
 class PDFAgent():
 
     def __init__(self):
@@ -70,8 +70,9 @@ class PDFAgent():
         assert self._query_engine is not None, "Query engine is None. Please call PDFAgent.create_index_from_chunks() before asking the agent."
         start = time.time()
         response = self._query_engine.query(prompt)
+        assert response, "Response from the agent is None."
         print(f"--Agent response generated in {round(time.time() - start, 2)} seconds--\n")
-        print(f"-*-Response type: {type(response)}, \n-*-Response itself: {response}")
+        return response
 
 
     

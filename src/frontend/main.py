@@ -1,4 +1,4 @@
-import sys, os
+import sys, os, time
 
 # Add the project root to the Python path
 project_root = os.path.join(os.path.dirname(__file__), '..', '..')
@@ -14,61 +14,44 @@ def main(page: ft.Page):
     page.padding = 0
     page.horizontal_alignment = ft.CrossAxisAlignment.CENTER
 
-    # Initialize backend service, that also initializes the agent
+    # Initialize backend service, that also initializes the agent and parser
     service = PDFService()
 
-    file_column = ft.Column(controls=[ft.Image(src=LOGO_PATH, width=500, opacity=0.5)],
-                            horizontal_alignment=ft.CrossAxisAlignment.CENTER,
-                            expand=True, scroll=ft.ScrollMode.AUTO)
-
-    chat_messages = ft.Column(
-        controls=[],
-        horizontal_alignment=ft.CrossAxisAlignment.CENTER,
-        expand=True,
-        scroll=ft.ScrollMode.AUTO,
-    )
-
-    message_input = ft.TextField(
-        hint_text="Ask a question here...",
-        multiline=True,
-        expand=True,
-    )
-
-    send_button = ft.IconButton(
-        icon=ft.Icons.SEND,
-        tooltip="Send Message",
-    )
-
-    input_row = ft.Row([message_input, send_button],
-                       spacing=10,
-                       vertical_alignment=ft.CrossAxisAlignment.END,
-                       expand=True)
-
-    chat_content = ft.Column(
-        controls=[
-            ft.Container(content=chat_messages, expand=3),
-            ft.Container(content=input_row, expand=1)
-        ],
-        spacing=10,
-        expand=True
-    )
-
-    sidebar_handle = ft.GestureDetector(
-        content=ft.Container(
-            width=5,
-            bgcolor=ft.Colors.BLUE_300
-        ),
-        drag_interval=1,
-        on_pan_update=lambda e: resize_sidebar(e),
-        mouse_cursor=ft.MouseCursor.RESIZE_LEFT_RIGHT
-    )
-
-    sidebar = ft.Container(
-        content=chat_content,
-        width=0,
-        bgcolor=ft.Colors.BLUE_50,
-        padding=10,
-    )
+    def on_message_send(e) -> None:
+        """
+        Handles submitting user prompt to the agent and receiving the response.
+        """
+        if message_input.value.strip() == "":
+            return
+        else:
+            # chat_content.controls[0].border = ft.border.all(1, ft.Colors.BLACK)
+            user_message = message_input.value.strip()
+            chat_messages.controls.append(ft.Text(f"You: {user_message}", text_align=ft.TextAlign.RIGHT))
+            message_input.value = ""
+            # Show loading indicator
+            loading_container = ft.Container(
+                content=ft.Row([
+                    ft.ProgressRing(width=20, height=20, stroke_width=2),
+                    ft.Text("Agent is thinking...", size=14, color=ft.Colors.GREY_600)
+                ], spacing=10, alignment=ft.MainAxisAlignment.START),
+                padding=ft.padding.only(left=10, top=5, bottom=5)
+            )
+            chat_messages.controls.append(loading_container)
+            # Disable send button during processing
+            send_button.disabled = True
+            chat_content.update()
+            
+            # Ask the agent
+            start_time = time.time()
+            response = service.agent.ask_agent(user_message)
+            elapsed_time = time.time() - start_time
+            
+            # Remove loading indicator and add response
+            chat_messages.controls.pop()  # Remove loading indicator
+            chat_messages.controls.append(ft.Text(f"Agent ({elapsed_time:.2f}s): {response}", text_align=ft.TextAlign.JUSTIFY))
+            # Re-enable send button
+            send_button.disabled = False
+            chat_content.update()
 
     def display_parsed_content(content: str) -> None:
         """
@@ -127,14 +110,66 @@ def main(page: ft.Page):
             # debug parsed content
             # display_parsed_content(service.parser.debug_chunks())
             # agent chat test
-            try:
-                service.agent.ask_agent("What is the most recent work experience of Illia?")
-            except Exception as e:
-                print(f"Error during agent query: {e}")
 
     def open_file(e) -> None:
         file_picker.pick_files(initial_directory="Desktop", allowed_extensions=["pdf"])
         print("--File dialog opened!--")
+
+#############-UI-Elelments-###############
+
+    file_column = ft.Column(controls=[ft.Image(src=LOGO_PATH, width=500, opacity=0.5)],
+                            horizontal_alignment=ft.CrossAxisAlignment.CENTER,
+                            expand=True, scroll=ft.ScrollMode.AUTO)
+
+    chat_messages = ft.Column(
+        controls=[],
+        horizontal_alignment=ft.CrossAxisAlignment.CENTER,
+        expand=True,
+        scroll=ft.ScrollMode.AUTO,
+    )
+
+    message_input = ft.TextField(
+        hint_text="Ask a question here...",
+        multiline=True,
+        expand=True,
+    )
+
+    send_button = ft.IconButton(
+        icon=ft.Icons.SEND,
+        tooltip="Send Message",
+        on_click=on_message_send
+    )
+
+    input_row = ft.Row([message_input, send_button],
+                       spacing=10,
+                       vertical_alignment=ft.CrossAxisAlignment.END,
+                       expand=True)
+
+    chat_content = ft.Column(
+        controls=[
+            ft.Container(content=chat_messages, expand=3),
+            ft.Container(content=input_row, expand=1)
+        ],
+        spacing=10,
+        expand=True
+    )
+
+    sidebar_handle = ft.GestureDetector(
+        content=ft.Container(
+            width=5,
+            bgcolor=ft.Colors.BLUE_300
+        ),
+        drag_interval=1,
+        on_pan_update=lambda e: resize_sidebar(e),
+        mouse_cursor=ft.MouseCursor.RESIZE_LEFT_RIGHT
+    )
+
+    sidebar = ft.Container(
+        content=chat_content,
+        width=0,
+        bgcolor=ft.Colors.BLUE_50,
+        padding=10,
+    )
 
     # overlay
     file_picker = ft.FilePicker(on_result=on_dialog_result)
