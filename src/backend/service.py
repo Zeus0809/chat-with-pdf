@@ -31,14 +31,16 @@ class PDFService:
         self._convert_pages_to_images(os.path.basename(file_path))
         print(f"-*-File {os.path.basename(file_path)} loaded successfully in {round(time.time()-start, 2)}s!-*-")
 
-        # run the parsing (change to async later)
-        self.parser.parse_to_blocks(self.pdf)
+        self.agent.create_index(file_path)
 
-        # run chunk generation
-        self.parser.build_rich_chunked_content()
+        # # run the parsing (change to async later)
+        # self.parser.parse_to_blocks(self.pdf)
 
-        # create an index and a query engine
-        self.agent.create_index_from_chunks(self.parser.pdf_chunks)
+        # # run chunk generation
+        # self.parser.build_rich_chunked_content()
+
+        # # create an index and a query engine
+        # self.agent.create_index_from_chunks(self.parser.pdf_chunks)
 
         return self._get_image_paths()
 

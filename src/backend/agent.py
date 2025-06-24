@@ -1,9 +1,10 @@
-from llama_index.core import VectorStoreIndex, Document, Settings
+from llama_index.core import VectorStoreIndex, Document, Settings, SimpleDirectoryReader
 from llamaindex_utils.llama_cpp_embedding import LlamaCppEmbedding
 from llama_index.llms.llama_cpp import LlamaCPP
 from typing import List
-import os, time
+import os, time, shutil
 
+DATA_PATH = "storage/data"
 EMBED_MODEL_PATH = "./local_models/embed/nomic-embed-text-v2-moe.Q8_0.gguf"
 CHAT_MODELS = {
         "mistral-7b" : "./local_models/text/mistral-7b-instruct-v0.1.Q5_0.gguf",
@@ -38,6 +39,20 @@ class PDFAgent():
     def get_index_summary(self) -> str:
         return self._index.summary
 
+    def create_index(self, file_path: str) -> None:
+        """
+        The simplest, baseline way to create an index using LlamaIndex.
+        """
+        # copy file into ~/storage/data to only index the file we need
+        os.makedirs(DATA_PATH, exist_ok=True)
+        shutil.copy(file_path, DATA_PATH)
+        start = time.time()
+        documents = SimpleDirectoryReader(DATA_PATH).load_data()
+        self._index = VectorStoreIndex.from_documents(documents, show_progress=True)
+        assert self._index is not None, "Index is None. Create an index before creating a query engine."
+        self._query_engine = self._index.as_query_engine(llm=self._chat_model)
+        print(f"--Index created in {round(time.time() - start, 2)}s.--")
+
     def create_index_from_chunks(self, chunks: List[dict]) -> None:
         """
         Creates a vector store index from content chunks with rich metadata.
@@ -71,7 +86,8 @@ class PDFAgent():
         start = time.time()
         response = self._query_engine.query(prompt)
         assert response, "Response from the agent is None."
-        print(f"--Agent response generated in {round(time.time() - start, 2)} seconds--\n")
+        print(f"--Agent response generated in {round(time.time() - start, 2)}s.--\n")
+        print(f"Agent response: {response}")
         return response
 
 
