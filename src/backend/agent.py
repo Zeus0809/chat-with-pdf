@@ -1,24 +1,61 @@
 from llama_index.core import VectorStoreIndex, Document, Settings, SimpleDirectoryReader
 from llamaindex_utils.llama_cpp_embedding import LlamaCppEmbedding
 from llama_index.llms.llama_cpp import LlamaCPP
+from dotenv import load_dotenv
 from typing import List
 import os, time, shutil
 
-DATA_PATH = "storage/data"
-EMBED_MODEL_PATH = "./local_models/embed/nomic-embed-text-v2-moe.Q8_0.gguf"
+load_dotenv(verbose=True)
+
 CHAT_MODELS = {
         "mistral-7b" : "./local_models/text/mistral-7b-instruct-v0.1.Q5_0.gguf",
         # Try other models during development process -> pick one in the end
     }
 
+def messages_to_prompt(messages: List[dict]) -> str:
+    """
+    Converts chat messages from LlamaIndex to Mistral Instruct format.
+    
+    Mistral Instruct format: <s>[INST] user_message [/INST] assistant_response</s>
+    Multi-turn: <s>[INST] msg1 [/INST] resp1</s><s>[INST] msg2 [/INST] resp2</s>
+    """
+    prompt = "<s>"  # Start with opening token
+    
+    for message in messages:
+        if message.role == 'system':
+            # System message goes first, no additional <s>
+            prompt += f"{message.content}\n"
+        elif message.role == 'user':
+            prompt += f"[INST] {message.content} [/INST]"
+        elif message.role == 'assistant':
+            prompt += f" {message.content}</s><s>"
+    
+    # Clean up trailing <s> if present
+    if prompt.endswith("<s>"):
+        prompt = prompt[:-3]
+    
+    return prompt
+
+def completion_to_prompt(completion: str) -> str:
+    """
+    Fallback formatting function for single completions (rarely used in RAG).
+    """
+    return f"[INST] {completion} [/INST]"
+
 class PDFAgent():
 
     def __init__(self):
         # Initialize embedding model
-        Settings.embed_model = LlamaCppEmbedding(model_path=EMBED_MODEL_PATH, verbose=False)
-        self._embed_model_path =  EMBED_MODEL_PATH
+        Settings.embed_model = LlamaCppEmbedding(model_path=os.getenv('EMBED_MODEL_PATH'), verbose=False)
+        self._embed_model_path = os.getenv('EMBED_MODEL_PATH')
         # Initialize chat model
-        self._chat_model = LlamaCPP(model_path=CHAT_MODELS["mistral-7b"], verbose=False)
+        self._chat_model = LlamaCPP(model_path=CHAT_MODELS["mistral-7b"],
+                                    temperature=0.1,
+                                    max_new_tokens=768,
+                                    context_window=4096,
+                                    messages_to_prompt=messages_to_prompt,
+                                    completion_to_prompt=completion_to_prompt,
+                                    verbose=True)
         self._chat_model_path = CHAT_MODELS["mistral-7b"]
         # Index and query engine
         self._index = None
@@ -44,10 +81,9 @@ class PDFAgent():
         The simplest, baseline way to create an index using LlamaIndex.
         """
         # copy file into ~/storage/data to only index the file we need
-        os.makedirs(DATA_PATH, exist_ok=True)
-        shutil.copy(file_path, DATA_PATH)
+        shutil.copy(file_path, os.getenv('DATA_PATH'))
         start = time.time()
-        documents = SimpleDirectoryReader(DATA_PATH).load_data()
+        documents = SimpleDirectoryReader(os.getenv('DATA_PATH')).load_data()
         self._index = VectorStoreIndex.from_documents(documents, show_progress=True)
         assert self._index is not None, "Index is None. Create an index before creating a query engine."
         self._query_engine = self._index.as_query_engine(llm=self._chat_model)
@@ -91,4 +127,4 @@ class PDFAgent():
         return response
 
 
-    
+

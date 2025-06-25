@@ -334,8 +334,10 @@ class PDFParser:
         """
         Clears the parsed content to prepare for a new document.
         """
-        self.pdf_markdown = None
+        self.pdf_chunks = None
         self.pdf_blocks = None
+        self._content_type_analysis = None
+        self._pdf_char_count = 0
         print("--Parsed content cleared!--")
 
     def image_to_text(self, blob: bytes) -> str:

@@ -2,7 +2,10 @@ import pymupdf as pd
 from typing import List, Optional
 from src.backend.agent import PDFAgent
 from src.backend.parser import PDFParser
-import time, os
+from dotenv import load_dotenv
+import time, os, shutil
+
+load_dotenv(verbose=True)
 
 class PDFService:
     """
@@ -15,6 +18,8 @@ class PDFService:
         # make sure storage/ui exists and clear it
         os.makedirs("storage/ui", exist_ok=True)
         self._clear_ui_folder()
+        # make sure storage/data exists and clear it
+        self._clear_data_folder()
 
     def load_pdf(self, file_path: str) -> List[str]:
         """
@@ -53,6 +58,7 @@ class PDFService:
             print("--Old file closed!--")
             self._clear_ui_folder()
             self.parser.clear_parsed_content()
+            self._clear_data_folder()
 
     def _convert_pages_to_images(self, file_name: str) -> None:
         """
@@ -73,15 +79,25 @@ class PDFService:
         paths = sorted([os.path.abspath(os.path.join("storage/ui", fname)) for fname in os.listdir("storage/ui")])
         return paths
 
-    def _clear_ui_folder(self) -> None:
+    @staticmethod
+    def _clear_ui_folder() -> None:
         """
-        Deletes all images (pdf pages) from ~/storage/ui/ provided the folder is not empty.
+        Deletes all images (pdf pages) from the UI folder and makes sure we get an empty folder.
         """
-        if os.listdir("storage/ui"):
-            for image in self._get_image_paths():
-                os.remove(image)
-            print("--UI folder cleared!--")
+        if os.path.exists(os.getenv('UI_PATH')):
+            shutil.rmtree(os.getenv('UI_PATH'))
+        os.makedirs(os.getenv('UI_PATH'), exist_ok=True)
+        print(f"--UI folder cleared--")
 
+    @staticmethod
+    def _clear_data_folder() -> None:
+        """
+        Clears the data folder where indexed documents are stored and makes sure we get an empty folder.
+        """
+        if os.path.exists(os.getenv('DATA_PATH')):
+            shutil.rmtree(os.getenv('DATA_PATH'))
+        os.makedirs(os.getenv('DATA_PATH'), exist_ok=True)
+        print(f"--Data folder cleared--")
 
         
 
