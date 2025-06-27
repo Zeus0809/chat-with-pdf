@@ -1,6 +1,7 @@
 from llama_index.core import VectorStoreIndex, Document, Settings, SimpleDirectoryReader
 from llamaindex_utils.llama_cpp_embedding import LlamaCppEmbedding
 from llama_index.llms.llama_cpp import LlamaCPP
+from llama_index.llms.ollama import Ollama
 from dotenv import load_dotenv
 from typing import List
 import os, time, shutil
@@ -9,6 +10,8 @@ load_dotenv(verbose=True)
 
 CHAT_MODELS = {
         "mistral-7b" : "./local_models/text/mistral-7b-instruct-v0.1.Q5_0.gguf",
+        "yi-9b" : "hf.co/bartowski/Yi-1.5-9B-Chat-GGUF:IQ4_NL",
+        "qwen2.5" : "qwen2.5:7b"
         # Try other models during development process -> pick one in the end
     }
 
@@ -48,15 +51,17 @@ class PDFAgent():
         # Initialize embedding model
         Settings.embed_model = LlamaCppEmbedding(model_path=os.getenv('EMBED_MODEL_PATH'), verbose=False)
         self._embed_model_path = os.getenv('EMBED_MODEL_PATH')
-        # Initialize chat model
-        self._chat_model = LlamaCPP(model_path=CHAT_MODELS["mistral-7b"],
-                                    temperature=0.1,
-                                    max_new_tokens=768,
-                                    context_window=4096,
-                                    messages_to_prompt=messages_to_prompt,
-                                    completion_to_prompt=completion_to_prompt,
-                                    verbose=True)
+        # Initialize chat model with LlamaCPP
+        # self._chat_model = LlamaCPP(model_path=CHAT_MODELS["mistral-7b"],
+        #                             temperature=0.1,
+        #                             max_new_tokens=768,
+        #                             context_window=4096,
+        #                             messages_to_prompt=messages_to_prompt,
+        #                             completion_to_prompt=completion_to_prompt,
+        #                             verbose=True)
         self._chat_model_path = CHAT_MODELS["mistral-7b"]
+        # Initialize chat model with Ollama
+        self._chat_model = Ollama(model=CHAT_MODELS["yi-9b"], temperature=0.1)
         # Index and query engine
         self._index = None
         self._query_engine = None
