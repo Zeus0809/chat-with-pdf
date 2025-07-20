@@ -1,17 +1,18 @@
 from llama_index.core import VectorStoreIndex, Document, Settings, SimpleDirectoryReader
-from llamaindex_utils.llama_cpp_embedding import LlamaCppEmbedding
+from llamaindex_utils.integrations import LlamaCppEmbedding, DockerLLM
 from llama_index.llms.llama_cpp import LlamaCPP
 from llama_index.llms.ollama import Ollama
 from dotenv import load_dotenv
 from typing import List
-import os, time, shutil
+import os, time, shutil, requests, subprocess
 
 load_dotenv(verbose=True)
 
 CHAT_MODELS = {
         "mistral-7b" : "./local_models/text/mistral-7b-instruct-v0.1.Q5_0.gguf",
         "yi-9b" : "hf.co/bartowski/Yi-1.5-9B-Chat-GGUF:IQ4_NL",
-        "qwen2.5" : "qwen2.5:7b"
+        "gemma3n-docker" : "ai/gemma3n",
+        "gemma3n-ollama" : "gemma3n:latest"
         # Try other models during development process -> pick one in the end
     }
 
@@ -47,21 +48,37 @@ def completion_to_prompt(completion: str) -> str:
 
 class PDFAgent():
 
-    def __init__(self):
+    def __init__(self, llm_backend: str = "ollama"):
+
         # Initialize embedding model
         Settings.embed_model = LlamaCppEmbedding(model_path=os.getenv('EMBED_MODEL_PATH'), verbose=False)
         self._embed_model_path = os.getenv('EMBED_MODEL_PATH')
-        # Initialize chat model with LlamaCPP
-        # self._chat_model = LlamaCPP(model_path=CHAT_MODELS["mistral-7b"],
-        #                             temperature=0.1,
-        #                             max_new_tokens=768,
-        #                             context_window=4096,
-        #                             messages_to_prompt=messages_to_prompt,
-        #                             completion_to_prompt=completion_to_prompt,
-        #                             verbose=True)
-        self._chat_model_path = CHAT_MODELS["mistral-7b"]
-        # Initialize chat model with Ollama
-        self._chat_model = Ollama(model=CHAT_MODELS["yi-9b"], temperature=0.1)
+
+        # Initialize chat model with the specified backend
+        if llm_backend == "llamacpp":
+            self._chat_model = LlamaCPP(model_path=CHAT_MODELS["mistral-7b"],
+                                        temperature=0.1,
+                                        max_new_tokens=768,
+                                        context_window=4096,
+                                        messages_to_prompt=messages_to_prompt,
+                                        completion_to_prompt=completion_to_prompt,
+                                        verbose=True)
+            self._chat_model_path = CHAT_MODELS["mistral-7b"]
+            print("\n\n###-Chat model initialized: LlamaCPP with Mistral 7B-###\n\n")
+        elif llm_backend == "ollama":
+            self.ensure_ollama_running()
+            # Initialize chat model with Ollama
+            self._chat_model = Ollama(model=CHAT_MODELS["gemma3n-ollama"], temperature=0.1)
+            print("\n\n###-Chat model initialized: Ollama with Gemma3n-###\n\n")
+        elif llm_backend == "docker":
+            # Initialize chat model with Ollama using Docker Model Runner (experiment)
+            
+            # Write my own abstraction DockerLLM to use with LlamaIndex
+
+            print("\n\n###-Chat model initialized: Docker Model Runner with Gemma3n-###\n\n")
+        else:
+            raise ValueError(f"Unsupported LLM backend: {llm_backend}. Available options: 'ollama', 'llamacpp', 'docker'.")
+
         # Index and query engine
         self._index = None
         self._query_engine = None
@@ -80,6 +97,24 @@ class PDFAgent():
     @property
     def get_index_summary(self) -> str:
         return self._index.summary
+
+    def ensure_ollama_running(self) -> None:
+        """
+        Ensures that the Ollama service is running. If not, starts it.
+        """
+        try:
+            requests.get("http://localhost:11434/api/tags", timeout=3)
+        except:
+            # print("--Starting Ollama...")
+            subprocess.Popen(['ollama', 'serve'], stdout=subprocess.DEVNULL, stderr=subprocess.DEVNULL)
+            # Wait for Ollama to start with timeout
+            for _ in range(10):  # Try for up to 10 seconds
+                time.sleep(1)
+                try:
+                    requests.get("http://localhost:11434/api/tags", timeout=2)
+                    break
+                except:
+                    continue
 
     def create_index(self, file_path: str) -> None:
         """

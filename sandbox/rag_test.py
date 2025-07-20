@@ -1,5 +1,5 @@
 from llama_index.core import VectorStoreIndex, SimpleDirectoryReader, Settings
-from llamaindex_utils.llama_cpp_embedding import LlamaCppEmbedding
+from llamaindex_utils.integrations import LlamaCppEmbedding
 from llama_index.llms.llama_cpp import LlamaCPP
 import time
 

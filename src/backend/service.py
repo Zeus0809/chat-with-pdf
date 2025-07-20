@@ -14,7 +14,7 @@ class PDFService:
     def __init__(self):
         self.pdf: Optional[pd.Document] = None  # raw document handle
         self.parser = PDFParser() # dependency injection for the parser
-        self.agent = PDFAgent() # dependency injection for the agent
+        self.agent = PDFAgent(llm_backend="docker") # dependency injection for the agent
         # make sure storage/ui exists and clear it
         os.makedirs("storage/ui", exist_ok=True)
         self._clear_ui_folder()

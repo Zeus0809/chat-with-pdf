@@ -1,4 +1,5 @@
 from llama_index.core.embeddings import MultiModalEmbedding
+from llama_index.core.llms.custom import CustomLLM
 from llama_cpp import Llama
 from typing import Optional, List
 from llama_index.core.bridge.pydantic import PrivateAttr
@@ -121,4 +122,11 @@ class LlamaCppEmbedding(MultiModalEmbedding):
         """
         # For text queries, we can use the same embedding approach as normal text
         return self._text_model.embed(query)
-    
+
+
+class DockerLLM(CustomLLM):
+    """
+    Custom LLM class to use Docker Model Runner for chat models inside LlamaIndex's RAG pipeline.
+    """
+
+    pass
