@@ -128,8 +128,11 @@ class DockerLLM(CustomLLM):
     """
     Custom LLM class to use Docker Model Runner for chat models inside LlamaIndex's RAG pipeline.
     Docker Model Runner API docs: https://docs.docker.com/ai/model-runner/
+    
     Main endpoints:
+        /engine/llama.cpp/v1/models
         /engine/llama.cpp/v1/completions
+        /engine/llama.cpp/v1/chat/completions
     """
 
     model: str = Field(

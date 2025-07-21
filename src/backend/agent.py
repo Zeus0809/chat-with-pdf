@@ -4,7 +4,7 @@ from llama_index.llms.llama_cpp import LlamaCPP
 from llama_index.llms.ollama import Ollama
 from dotenv import load_dotenv
 from typing import List
-import os, time, shutil, requests, subprocess
+import os, time, shutil, requests, subprocess, platform
 
 load_dotenv(verbose=True)
 
@@ -71,10 +71,9 @@ class PDFAgent():
             self._chat_model = Ollama(model=CHAT_MODELS["gemma3n-ollama"], temperature=0.1)
             print("\n\n###-Chat model initialized: Ollama with Gemma3n-###\n\n")
         elif llm_backend == "docker":
+            self.ensure_docker_running()
             # Initialize chat model with Ollama using Docker Model Runner (experiment)
-            
             self._chat_model = DockerLLM(model=CHAT_MODELS["gemma3n-docker"])
-            
             print("\n\n###-Chat model initialized: Docker Model Runner with Gemma3n-###\n\n")
         else:
             raise ValueError(f"Unsupported LLM backend: {llm_backend}. Available options: 'ollama', 'llamacpp', 'docker'.")
@@ -98,6 +97,40 @@ class PDFAgent():
     def get_index_summary(self) -> str:
         return self._index.summary
 
+    def ensure_docker_running(self) -> None:
+        """
+        Ensures that the Docker engine is running so that Docker Model Runner is available. If not, starts it.
+        """
+        try:
+            requests.get("http://localhost:12434/engine/llama.cpp/v1/models", timeout=3)
+        except:
+            # starting docker
+            if platform.system() == "Darwin": # macOS
+                subprocess.Popen(['open', '-a', 'Docker'], stdout=subprocess.DEVNULL, stderr=subprocess.DEVNULL)
+                time.sleep(1)
+                try:
+                    subprocess.run(['osascript', '-e', 'tell application "System Events" to set visible of process "Docker Desktop" to false'], stdout=subprocess.DEVNULL, stderr=subprocess.DEVNULL)
+                except:
+                    print("--Failed to hide Docker window--")
+            elif platform.system() == "Windows":
+                try:
+                    subprocess.Popen(['cmd', '/c', 'start', 'Docker Desktop'])
+                except Exception as e:
+                    print("--Failed to start docker on Windows--")
+                    # TODO: replace with actual UI error
+            else:
+                print("--Unsupported OS. Failed to start the docker engine.")
+                return
+            # Wait for Docker to start with timeout
+            for _ in range(8):  # Try for up to 8 seconds
+                time.sleep(1)
+                try:
+                    requests.get("http://localhost:12434/engine/llama.cpp/v1/models", timeout=2)
+                    print("--Docker Model Runner ready--")
+                    break
+                except:
+                    continue
+
     def ensure_ollama_running(self) -> None:
         """
         Ensures that the Ollama service is running. If not, starts it.
@@ -106,12 +139,23 @@ class PDFAgent():
             requests.get("http://localhost:11434/api/tags", timeout=3)
         except:
             # print("--Starting Ollama...")
-            subprocess.Popen(['ollama', 'serve'], stdout=subprocess.DEVNULL, stderr=subprocess.DEVNULL)
+            if platform.system() == "Darwin":
+                subprocess.Popen(['ollama', 'serve'], stdout=subprocess.DEVNULL, stderr=subprocess.DEVNULL)
+            elif platform.system() == "Windows":
+                try:
+                    subprocess.Popen(['ollama', 'serve'], stdout=subprocess.DEVNULL, stderr=subprocess.DEVNULL, shell=True)
+                except Exception as e:
+                    print("--Failed to start ollama on Windows--")
+                    # TODO: replace with actual UI error
+            else:
+                print("--Unsupported OS. Failed to start the ollama service.")
+                return
             # Wait for Ollama to start with timeout
             for _ in range(10):  # Try for up to 10 seconds
                 time.sleep(1)
                 try:
                     requests.get("http://localhost:11434/api/tags", timeout=2)
+                    print("--Ollama ready--")
                     break
                 except:
                     continue
