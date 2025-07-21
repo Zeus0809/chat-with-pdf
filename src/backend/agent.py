@@ -1,6 +1,7 @@
 from llama_index.core import VectorStoreIndex, Document, Settings, SimpleDirectoryReader
 from llamaindex_utils.integrations import LlamaCppEmbedding, DockerLLM
 from llama_index.llms.llama_cpp import LlamaCPP
+from llama_index.llms.openai import OpenAI
 from llama_index.llms.ollama import Ollama
 from dotenv import load_dotenv
 from typing import List
@@ -73,8 +74,8 @@ class PDFAgent():
         elif llm_backend == "docker":
             # Initialize chat model with Ollama using Docker Model Runner (experiment)
             
-            # Write my own abstraction DockerLLM to use with LlamaIndex
-
+            
+            
             print("\n\n###-Chat model initialized: Docker Model Runner with Gemma3n-###\n\n")
         else:
             raise ValueError(f"Unsupported LLM backend: {llm_backend}. Available options: 'ollama', 'llamacpp', 'docker'.")

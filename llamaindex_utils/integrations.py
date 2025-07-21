@@ -1,9 +1,11 @@
+from llama_index.core.bridge.pydantic import PrivateAttr, Field
 from llama_index.core.embeddings import MultiModalEmbedding
+from llama_index.core.base.llms.types import LLMMetadata, CompletionResponseGen, CompletionResponse
 from llama_index.core.llms.custom import CustomLLM
+from typing import Optional, List, Any
 from llama_cpp import Llama
-from typing import Optional, List
-from llama_index.core.bridge.pydantic import PrivateAttr
-import os
+import requests, json
+
 
 class LlamaCppEmbedding(MultiModalEmbedding):
     """"
@@ -123,10 +125,119 @@ class LlamaCppEmbedding(MultiModalEmbedding):
         # For text queries, we can use the same embedding approach as normal text
         return self._text_model.embed(query)
 
-
 class DockerLLM(CustomLLM):
     """
     Custom LLM class to use Docker Model Runner for chat models inside LlamaIndex's RAG pipeline.
+    Docker Model Runner API docs: https://docs.docker.com/ai/model-runner/
+    Main endpoints:
+        /engine/llama.cpp/v1/completions
     """
 
-    pass
+    model: str = Field(
+        description="Docker Model Runner model name.",
+        examples=["ai/qwen3", "ai/gemma3n"],
+        min_length=1
+    )
+    base_url: str = Field(
+        default="http://localhost:12434",
+        description="Docker Model Runner API base URL."
+    )
+    max_tokens: int = Field(
+        default=512,
+        description="Maximum number of tokens to generate in completion.",
+        ge=1,
+        le=4096
+    )
+    temperature: float = Field(
+        default=1.0,
+        description="Temperature for sampling during text generation.",
+        ge=0.0,
+        le=2.0  # OpenAI-style range
+    )
+    timeout: float = Field(
+        default=60.0,
+        description="Timeout for HTTP requests to the Docker Model Runner."
+    )
+
+    def __init__(
+        self,
+        model: str,
+        base_url: str = "http://localhost:12434",
+        temperature: float = 1.0,
+        timeout: float = 60.0,
+        max_tokens: int = 512,
+        *args: Any,
+        **kwargs: Any
+    ) -> None:
+        # Just pass extra LlamaIndex parameters to the parent class, the rest is handled by Pydantic
+        super().__init__(*args, **kwargs)
+
+    @classmethod
+    def class_name(cls) -> str:
+        return "docker_llm"
+    
+    @property
+    def metadata(self) -> LLMMetadata:
+        """Docker LLM metadata."""
+        return LLMMetadata(
+            is_chat_model=True,
+            model_name=self.model
+        )
+    
+    def _get_completions_endpoint(self) -> str:
+        return f"{self.base_url}/engines/llama.cpp/v1/completions"
+    
+    def _complete(self, prompt: str, **kwargs: Any) -> str:
+        """
+        Implementing the _complete method as instructed by CustomLLM.
+        """
+        payload = {
+            "model": self.model,
+            "prompt": prompt,
+            "temperature": self.temperature,
+            "max_tokens": self.max_tokens,
+            "stream": False,
+            **kwargs
+        }
+        response = requests.post(url=self._get_completions_endpoint(), json=payload, timeout=self.timeout)
+        response.raise_for_status()
+        response_data = response.json()
+        return response_data["choices"][0]["text"]
+    
+    def _stream_complete(self, prompt: str, **kwargs: Any) -> CompletionResponseGen:
+        """
+        Implementing the _stream_complete method as instructed by CustomLLM.
+        """
+        payload = {
+            "model": self.model,
+            "prompt": prompt,
+            "temperature": self.temperature,
+            "max_tokens": self.max_tokens,
+            "stream": True,
+            **kwargs
+        }
+        response = requests.post(url=self._get_completions_endpoint(), json=payload, timeout=self.timeout, stream=True)
+        response.raise_for_status()
+        for line in response.iter_lines():
+            if line.startswith(b'data: '):
+                data = line[6:] # remove 'data' prefix
+                if data == b'[DONE]':
+                    break
+                
+                try:
+                    chunk = json.loads(data)
+                    content = chunk["choices"][0]["delta"].get("content", "")
+                    if content:
+                        yield CompletionResponse(
+                            text=content,
+                            delta=content
+                        )
+                except (json.JSONDecodeError, KeyError):
+                    # skip malformed chunks
+                    continue
+
+    
+                
+
+
+        
