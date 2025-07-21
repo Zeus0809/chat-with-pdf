@@ -6,7 +6,6 @@ from typing import Optional, List, Any
 from llama_cpp import Llama
 import requests, json
 
-
 class LlamaCppEmbedding(MultiModalEmbedding):
     """"
     Multi-modal embedding class using llama.cpp for both text and image embeddings. Image model initialization to be added later.
@@ -169,8 +168,15 @@ class DockerLLM(CustomLLM):
         *args: Any,
         **kwargs: Any
     ) -> None:
-        # Just pass extra LlamaIndex parameters to the parent class, the rest is handled by Pydantic
-        super().__init__(*args, **kwargs)
+        # Pass all fields to parent so Pydantic can create them
+        super().__init__(
+            model=model,
+            base_url=base_url,
+            temperature=temperature,
+            timeout=timeout,
+            max_tokens=max_tokens,
+            *args, **kwargs
+        )
 
     @classmethod
     def class_name(cls) -> str:
@@ -187,7 +193,7 @@ class DockerLLM(CustomLLM):
     def _get_completions_endpoint(self) -> str:
         return f"{self.base_url}/engines/llama.cpp/v1/completions"
     
-    def _complete(self, prompt: str, **kwargs: Any) -> str:
+    def complete(self, prompt: str, **kwargs: Any) -> CompletionResponse:
         """
         Implementing the _complete method as instructed by CustomLLM.
         """
@@ -202,9 +208,11 @@ class DockerLLM(CustomLLM):
         response = requests.post(url=self._get_completions_endpoint(), json=payload, timeout=self.timeout)
         response.raise_for_status()
         response_data = response.json()
-        return response_data["choices"][0]["text"]
+        return CompletionResponse(
+            text=response_data["choices"][0]["text"]
+        )
     
-    def _stream_complete(self, prompt: str, **kwargs: Any) -> CompletionResponseGen:
+    def stream_complete(self, prompt: str, **kwargs: Any) -> CompletionResponseGen:
         """
         Implementing the _stream_complete method as instructed by CustomLLM.
         """
@@ -237,7 +245,7 @@ class DockerLLM(CustomLLM):
                     continue
 
     
-                
+             
 
 
         
