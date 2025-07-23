@@ -1,6 +1,7 @@
+from llama_index.core.base.llms.types import LLMMetadata, CompletionResponseGen, CompletionResponse
+from llama_index.core.llms.callbacks import llm_completion_callback
 from llama_index.core.bridge.pydantic import PrivateAttr, Field
 from llama_index.core.embeddings import MultiModalEmbedding
-from llama_index.core.base.llms.types import LLMMetadata, CompletionResponseGen, CompletionResponse
 from llama_index.core.llms.custom import CustomLLM
 from typing import Optional, List, Any
 from llama_cpp import Llama
@@ -218,6 +219,7 @@ class DockerLLM(CustomLLM):
     def stream_complete(self, prompt: str, **kwargs: Any) -> CompletionResponseGen:
         """
         Implementing the _stream_complete method as instructed by CustomLLM.
+        The method should return a generator function, so we can pull tokens from it on the outside.
         """
         payload = {
             "model": self.model,
@@ -227,25 +229,44 @@ class DockerLLM(CustomLLM):
             "stream": True,
             **kwargs
         }
-        response = requests.post(url=self._get_completions_endpoint(), json=payload, timeout=self.timeout, stream=True)
-        response.raise_for_status()
-        for line in response.iter_lines():
-            if line.startswith(b'data: '):
-                data = line[6:] # remove 'data' prefix
-                if data == b'[DONE]':
-                    break
-                
-                try:
-                    chunk = json.loads(data)
-                    content = chunk["choices"][0]["delta"].get("content", "")
-                    if content:
-                        yield CompletionResponse(
-                            text=content,
-                            delta=content
-                        )
-                except (json.JSONDecodeError, KeyError):
-                    # skip malformed chunks
+
+        def gen() -> CompletionResponseGen:
+            response = requests.post(
+                url=self._get_completions_endpoint(),
+                json=payload,
+                timeout=self.timeout,
+                stream=True
+            )
+            response.raise_for_status()
+            
+            text = ""
+            # The http response needs to be iterated over line by line as it comes in
+            for line in response.iter_lines(decode_unicode=True):
+                if not line or line == "[DONE]":
                     continue
+
+                # Handle Server-Sent Events (SSE) format (remove 'data' prefix)
+                if line.startswith("data: "):
+                    line = line[6:]
+
+                try:
+                    data = json.loads(line)
+
+                    delta = ""
+                    # flexible delta extraction depending on response format (in case DMR makes changes in the future)
+                    if "choices" in data and len(data["choices"]) > 0:
+                        choice = data["choices"][0]
+                        delta = (choice.get("text", "") or
+                                 choice.get("delta", {}).get("content", "") or
+                                 choice.get("delta", {}).get("text", ""))
+                        
+                    if delta:
+                        text += delta
+                        yield CompletionResponse(delta=delta, text=text, raw=data)
+                except (json.JSONDecodeError, KeyError, IndexError, TypeError):
+                    continue
+
+        return gen()
 
     
              

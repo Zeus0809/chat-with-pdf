@@ -29,29 +29,48 @@ def main(page: ft.Page):
             chat_messages.controls.append(ft.Text(f"You: {user_message}", text_align=ft.TextAlign.RIGHT))
             message_input.value = ""
             # Show loading indicator
-            loading_container = ft.Container(
-                content=ft.Row([
-                    ft.ProgressRing(width=20, height=20, stroke_width=2),
-                    ft.Text("Agent is thinking...", size=14, color=ft.Colors.GREY_600)
-                ], spacing=10, alignment=ft.MainAxisAlignment.START),
-                padding=ft.padding.only(left=10, top=5, bottom=5)
-            )
-            chat_messages.controls.append(loading_container)
+            loading()
             # Disable send button during processing
             send_button.disabled = True
             chat_content.update()
             
             # Ask the agent
             start_time = time.time()
-            response = service.agent.ask_agent(user_message)
-            elapsed_time = time.time() - start_time
+            response = service.agent.ask_agent(user_message) # response is a generator object
             
-            # Remove loading indicator and add response
-            chat_messages.controls.pop()  # Remove loading indicator
-            chat_messages.controls.append(ft.Text(f"Agent ({elapsed_time:.2f}s): {response}", text_align=ft.TextAlign.JUSTIFY))
+            # Create placeholder to accumulate response, and a flag to wait for first token arrival
+            response_placeholder = ft.Text("", text_align=ft.TextAlign.JUSTIFY)
+            first_token = True
+
+            for text in response.response_gen:
+                if first_token:
+                    del chat_messages.controls[-1] # remove loading
+                    chat_messages.controls.append(response_placeholder) # add text box
+                    chat_messages.update()
+                    first_token = False
+                # display the rest of the stream
+                response_placeholder.value += text
+                response_placeholder.update()
+            # add elapsed time
+            elapsed_time = time.time() - start_time
+            response_placeholder.value += f" ({elapsed_time:.2f}s)"
+
             # Re-enable send button
             send_button.disabled = False
             chat_content.update()
+
+    def loading() -> None:
+        """
+        Create and add a loading indicator to the UI.
+        """
+        loading_container = ft.Container(
+                content=ft.Row([
+                    ft.ProgressRing(width=20, height=20, stroke_width=2),
+                    ft.Text("Agent is thinking...", size=14, color=ft.Colors.GREY_600)
+                ], spacing=10, alignment=ft.MainAxisAlignment.START),
+                padding=ft.padding.only(left=10, top=5, bottom=5)
+            )
+        chat_messages.controls.append(loading_container)
 
     def display_parsed_content(content: str) -> None:
         """
