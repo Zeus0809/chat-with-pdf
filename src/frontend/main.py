@@ -5,14 +5,15 @@ project_root = os.path.join(os.path.dirname(__file__), '..', '..')
 sys.path.insert(0, project_root)
 
 import flet as ft
+from dotenv import load_dotenv
 from src.backend.service import PDFService
-
-LOGO_PATH = "/Users/illiakozlov/ChatWithPDF/chat-with-pdf/src/assets/logo.png"
+from styles import ChatStyles, TextStyles
 
 def main(page: ft.Page):
     page.title = "Chat With PDF"
     page.padding = 0
     page.horizontal_alignment = ft.CrossAxisAlignment.CENTER
+    load_dotenv()
 
     # Initialize backend service, that also initializes the agent and parser
     service = PDFService()
@@ -24,9 +25,11 @@ def main(page: ft.Page):
         if message_input.value.strip() == "":
             return
         else:
-            # chat_content.controls[0].border = ft.border.all(1, ft.Colors.BLACK)
             user_message = message_input.value.strip()
-            chat_messages.controls.append(ft.Text(f"You: {user_message}", text_align=ft.TextAlign.RIGHT))
+            user_text_block = ft.Text(f"You: {user_message}", **TextStyles.message_text())
+            user_row = ChatStyles.create_user_message_row(bubble_content=user_text_block, parent_width=sidebar.width)
+            chat_messages.controls.append(user_row)
+
             message_input.value = ""
             # Show loading indicator
             loading()
@@ -41,7 +44,7 @@ def main(page: ft.Page):
             # Create placeholder to accumulate response, and a flag to wait for first token arrival
             response_placeholder = ft.Text("", text_align=ft.TextAlign.JUSTIFY)
             first_token = True
-
+            chat_messages.width
             for text in response.response_gen:
                 if first_token:
                     del chat_messages.controls[-1] # remove loading
@@ -136,7 +139,7 @@ def main(page: ft.Page):
 
 #############-UI-Elelments-###############
 
-    file_column = ft.Column(controls=[ft.Image(src=LOGO_PATH, width=500, opacity=0.5)],
+    file_column = ft.Column(controls=[ft.Image(src=os.getenv("LOGO_PATH"), width=500, opacity=0.5)],
                             horizontal_alignment=ft.CrossAxisAlignment.CENTER,
                             expand=True, scroll=ft.ScrollMode.AUTO)
 
@@ -166,7 +169,7 @@ def main(page: ft.Page):
 
     chat_content = ft.Column(
         controls=[
-            ft.Container(content=chat_messages, expand=3),
+            ft.Container(content=chat_messages, expand=5),
             ft.Container(content=input_row, expand=1)
         ],
         spacing=10,
@@ -213,8 +216,6 @@ def main(page: ft.Page):
 
     # render everything
     page.add(ui)
-
-    
 
 ft.app(main)
 

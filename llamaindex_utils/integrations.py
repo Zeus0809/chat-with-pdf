@@ -197,6 +197,7 @@ class DockerLLM(CustomLLM):
     def _get_completions_endpoint(self) -> str:
         return f"{self.base_url}/engines/llama.cpp/v1/completions"
     
+    @llm_completion_callback()
     def complete(self, prompt: str, **kwargs: Any) -> CompletionResponse:
         """
         Implementing the _complete method as instructed by CustomLLM.
@@ -216,6 +217,7 @@ class DockerLLM(CustomLLM):
             text=response_data["choices"][0]["text"]
         )
     
+    @llm_completion_callback()
     def stream_complete(self, prompt: str, **kwargs: Any) -> CompletionResponseGen:
         """
         Implementing the _stream_complete method as instructed by CustomLLM.
@@ -267,9 +269,6 @@ class DockerLLM(CustomLLM):
                     continue
 
         return gen()
-
-    
-             
 
 
         
