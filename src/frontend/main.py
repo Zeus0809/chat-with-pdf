@@ -143,9 +143,14 @@ def main(page: ft.Page):
 
 #############-UI-Elelments-###############
 
-    file_column = ft.Column(controls=[ft.Image(src=os.getenv("LOGO_PATH"), width=500, opacity=0.5)],
-                            horizontal_alignment=ft.CrossAxisAlignment.CENTER,
-                            expand=True, scroll=ft.ScrollMode.AUTO)
+    file_column = ft.Column(
+        controls=[
+            ft.Image(src=os.getenv("LOGO_PATH"), width=500, opacity=0.5)
+        ],
+        horizontal_alignment=ft.CrossAxisAlignment.CENTER,
+        expand=True,
+        scroll=ft.ScrollMode.AUTO
+    )
 
     chat_messages = ft.Column(
         controls=[],
@@ -157,6 +162,8 @@ def main(page: ft.Page):
         hint_text="Ask a question here...",
         multiline=True,
         expand=True,
+        shift_enter=True,
+        on_submit=on_message_send
     )
 
     send_button = ft.IconButton(
