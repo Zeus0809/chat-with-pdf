@@ -7,7 +7,7 @@ sys.path.insert(0, project_root)
 import flet as ft
 from dotenv import load_dotenv
 from src.backend.service import PDFService
-from styles import ChatStyles, TextStyles
+from styles import ChatStyles, TextStyles, Dimensions
 
 def main(page: ft.Page):
     page.title = "Chat With PDF"
@@ -26,10 +26,9 @@ def main(page: ft.Page):
             return
         else:
             user_message = message_input.value.strip()
-            user_text_block = ft.Text(f"You: {user_message}", **TextStyles.message_text())
-            user_row = ChatStyles.create_user_message_row(bubble_content=user_text_block, parent_width=sidebar.width)
+            user_text_block = ft.Text(f"{user_message}", **TextStyles.message_text())
+            user_row = ChatStyles.create_user_message_row(bubble_content=user_text_block)
             chat_messages.controls.append(user_row)
-
             message_input.value = ""
             # Show loading indicator
             loading()
@@ -42,21 +41,25 @@ def main(page: ft.Page):
             response = service.agent.ask_agent(user_message) # response is a generator object
             
             # Create placeholder to accumulate response, and a flag to wait for first token arrival
-            response_placeholder = ft.Text("", text_align=ft.TextAlign.JUSTIFY)
+            agent_text_block = ft.Text("", **TextStyles.message_text())
+            agent_row = ChatStyles.create_agent_message_row(bubble_content=agent_text_block)
             first_token = True
             chat_messages.width
             for text in response.response_gen:
                 if first_token:
                     del chat_messages.controls[-1] # remove loading
-                    chat_messages.controls.append(response_placeholder) # add text box
+                    chat_messages.controls.append(agent_row)
                     chat_messages.update()
                     first_token = False
                 # display the rest of the stream
-                response_placeholder.value += text
-                response_placeholder.update()
+                if "\n" in text:
+                    text = text.strip("\n")
+                agent_row.controls[0].controls[0].content.value += text
+                agent_row.update()
             # add elapsed time
             elapsed_time = time.time() - start_time
-            response_placeholder.value += f" ({elapsed_time:.2f}s)"
+            elapsed_time_text = ft.Text(f"({elapsed_time:.2f}s)", **TextStyles.elapsed_time())
+            agent_row.controls[0].controls.append(elapsed_time_text) # add time block to the chat bubble column after bubble container, so it appears below agent text
 
             # Re-enable send button
             send_button.disabled = False
@@ -66,13 +69,14 @@ def main(page: ft.Page):
         """
         Create and add a loading indicator to the UI.
         """
-        loading_container = ft.Container(
-                content=ft.Row([
-                    ft.ProgressRing(width=20, height=20, stroke_width=2),
-                    ft.Text("Agent is thinking...", size=14, color=ft.Colors.GREY_600)
-                ], spacing=10, alignment=ft.MainAxisAlignment.START),
-                padding=ft.padding.only(left=10, top=5, bottom=5)
-            )
+        loading_container = ft.Row(
+            controls=[
+                ft.ProgressRing(width=20, height=20, stroke_width=2),
+                ft.Text("Agent is thinking...", **TextStyles.loading_text())
+            ],
+            spacing=10,
+            alignment=ft.MainAxisAlignment.START
+        )
         chat_messages.controls.append(loading_container)
 
     def display_parsed_content(content: str) -> None:
@@ -109,7 +113,7 @@ def main(page: ft.Page):
         if sidebar.animate is None:
             sidebar.animate = ft.Animation(200, ft.AnimationCurve.EASE_IN_OUT)
         if sidebar.width == 0:
-            sidebar.width = 350 # expand
+            sidebar.width = Dimensions.SIDEBAR["start_width"] # expand
         else:
             sidebar.width = 0 # collapse
         sidebar.update()

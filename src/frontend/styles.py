@@ -10,13 +10,22 @@ menubar = ft.MenuStyle(
     
 )
 
+class Dimensions:
+    """Constants that define layout and UI dimensions throughout the app."""
+
+    SIDEBAR = {
+        "start_width": 350,
+    }
+
 class ChatStyles:
     """Chat-specific styling definitions."""
 
     COLORS = {
-        "user_bubble": ft.Colors.BLUE_400,
+        "user_bubble": ft.Colors.BLUE_300,
         "agent_bubble": ft.Colors.WHITE,
-        "text": ft.Colors.BLACK87,
+        "chat_text": ft.Colors.BLACK87,
+        "loading_text": ft.Colors.GREY_600,
+        "elapsed_time_text": ft.Colors.GREY_600,
         "background": ft.Colors.GREY_100,
         "border": ft.Colors.GREY_300
     }
@@ -26,7 +35,7 @@ class ChatStyles:
     BASE_BUBBLE = {
         "border_radius": ft.border_radius.all(12),
         "padding": ft.padding.all(12),
-        "margin": ft.margin.only(bottom=8)
+        "margin": ft.margin.only(bottom=1)
     }
 
     @staticmethod
@@ -47,11 +56,10 @@ class ChatStyles:
         }
     
     @staticmethod
-    def create_user_message_row(bubble_content: ft.Text, parent_width: OptionalNumber) -> ft.Row:
+    def create_user_message_row(bubble_content: ft.Text, parent_width: int | float = Dimensions.SIDEBAR["start_width"]) -> ft.Row:
         """Build and return a styled and aligned row that contains a user message bubble, intended to be placed in the chat area."""
 
         assert isinstance(bubble_content, ft.Text), f"bubble_content should be a Flet text element, instead got: {type(bubble_content)}"
-        assert isinstance(parent_width, (int, float)), f"parent_width should be an int or a float, instead got: {type(parent_width)}"
 
         max_bubble_width = parent_width * ChatStyles.MAX_BUBBLE_WIDTH_RATIO
 
@@ -75,11 +83,10 @@ class ChatStyles:
         )
     
     @staticmethod
-    def create_agent_message_row(bubble_content: ft.Text, parent_width: OptionalNumber) -> ft.Row:
+    def create_agent_message_row(bubble_content: ft.Text, parent_width: int | float = Dimensions.SIDEBAR["start_width"]) -> ft.Row:
         """Build and return a styled and aligned row that contains an agent message bubble, intended to be placed in the chat area."""
         
         assert isinstance(bubble_content, ft.Text), f"bubble_content should be a Flet text element, instead got: {type(bubble_content)}"
-        assert isinstance(parent_width, (int, float)), f"parent_width should be an int or a float, instead got: {type(parent_width)}"
         
         max_bubble_width = parent_width * ChatStyles.MAX_BUBBLE_WIDTH_RATIO
 
@@ -110,9 +117,26 @@ class TextStyles:
     def message_text():
         """Unified text style for both user and agent messages."""
         return {
-            "color": ChatStyles.COLORS['text'],
+            "color": ChatStyles.COLORS['chat_text'],
             "size": 14
         }
+    
+    @staticmethod
+    def loading_text():
+        """Unified text style for loading messages."""
+        return {
+            "color": ChatStyles.COLORS['loading_text'],
+            "size": 12
+        }
+
+    @staticmethod
+    def elapsed_time():
+        """Styling of elapsed time text for agent responses."""
+        return {
+            "color": ChatStyles.COLORS['elapsed_time_text'],
+            "size": 12
+        }
+
 
 
 
