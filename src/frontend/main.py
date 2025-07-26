@@ -35,7 +35,7 @@ def main(page: ft.Page):
             loading()
             # Disable send button during processing
             send_button.disabled = True
-            chat_content.update()
+            sidebar_content.update()
             
             # Ask the agent
             start_time = time.time()
@@ -60,7 +60,7 @@ def main(page: ft.Page):
 
             # Re-enable send button
             send_button.disabled = False
-            chat_content.update()
+            sidebar_content.update()
 
     def loading() -> None:
         """
@@ -145,7 +145,6 @@ def main(page: ft.Page):
 
     chat_messages = ft.Column(
         controls=[],
-        horizontal_alignment=ft.CrossAxisAlignment.CENTER,
         expand=True,
         scroll=ft.ScrollMode.AUTO,
     )
@@ -167,7 +166,7 @@ def main(page: ft.Page):
                        vertical_alignment=ft.CrossAxisAlignment.END,
                        expand=True)
 
-    chat_content = ft.Column(
+    sidebar_content = ft.Column(
         controls=[
             ft.Container(content=chat_messages, expand=5),
             ft.Container(content=input_row, expand=1)
@@ -187,7 +186,7 @@ def main(page: ft.Page):
     )
 
     sidebar = ft.Container(
-        content=chat_content,
+        content=sidebar_content,
         width=0,
         bgcolor=ft.Colors.BLUE_50,
         padding=10,

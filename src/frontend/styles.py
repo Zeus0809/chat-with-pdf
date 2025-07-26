@@ -55,24 +55,22 @@ class ChatStyles:
 
         max_bubble_width = parent_width * ChatStyles.MAX_BUBBLE_WIDTH_RATIO
 
-        message_bubble = ft.Column(
+        bubble_content.selectable = True
+        bubble_content.no_wrap = False
+
+        message_bubble = ft.Column( # using a Column with width and alignment solved the wrapping issue!
             controls=[
                 ft.Container(
-                content=bubble_content,
-                **ChatStyles.user_bubble()
+                    content=bubble_content,
+                    **ChatStyles.user_bubble()
                 )
             ],
-            wrap=True
+            width=max_bubble_width, # this is super important
+            horizontal_alignment=ft.CrossAxisAlignment.END # this is super important
         )
 
         return ft.Row(
-            controls=[
-                ft.Row(
-                    controls=[message_bubble],
-                    width=max_bubble_width,
-                    alignment=ft.MainAxisAlignment.END
-                )
-            ],
+            controls=[message_bubble],
             alignment=ft.MainAxisAlignment.END
         )
     
@@ -85,17 +83,23 @@ class ChatStyles:
         
         max_bubble_width = parent_width * ChatStyles.MAX_BUBBLE_WIDTH_RATIO
 
-        message_bubble = ft.Container(
-            content=bubble_content,
+        bubble_content.selectable = True
+        bubble_content.no_wrap = False
+
+        message_bubble = ft.Column(
+            controls=[
+                ft.Container(
+                    content=bubble_content,
+                    **ChatStyles.agent_bubble()
+                )
+            ],
             width=max_bubble_width,
-            **ChatStyles.agent_bubble()
+            horizontal_alignment=ft.CrossAxisAlignment.START
         )
 
         return ft.Row(
-            controls=[
-                message_bubble,
-                ft.Container(expand=True), # invisible spacer to push agent bubble to the left
-            ]
+            controls=[message_bubble],
+            alignment=ft.MainAxisAlignment.START
         )
 
     
