@@ -110,7 +110,7 @@ class PDFAgent():
             # starting docker
             if platform.system() == "Darwin": # macOS
                 subprocess.Popen(['open', '-a', 'Docker'], stdout=subprocess.DEVNULL, stderr=subprocess.DEVNULL)
-                time.sleep(2)
+                time.sleep(4)
                 try:
                     subprocess.run(['osascript', '-e', 'tell application "System Events" to set visible of process "Docker Desktop" to false'], stdout=subprocess.DEVNULL, stderr=subprocess.DEVNULL)
                 except:
@@ -176,30 +176,6 @@ class PDFAgent():
         self._query_engine = self._index.as_query_engine(llm=self._chat_model, streaming=True)
         print(f"--Index created in {round(time.time() - start, 2)}s.--")
 
-    def create_index_from_chunks(self, chunks: List[dict]) -> None:
-        """
-        Creates a vector store index from content chunks with rich metadata.
-        Each chunk becomes a separate Document for better retrieval granularity.
-        """
-        assert isinstance(chunks, list), f"Chunks should be a list, instead got {type(chunks)}."
-
-        start = time.time()
-
-        # Create LlamaIndex documents from prepared chunks
-        documents = []
-        for chunk in chunks:
-            assert isinstance(chunk, dict), f"Each chunk should be a dictionary, instead got {type(chunk)}."
-            doc = Document(
-                text=chunk['content'],
-                metadata=chunk['metadata']
-            )
-            documents.append(doc)
-
-        self._index = VectorStoreIndex.from_documents(documents, show_progress=True)
-        assert self._index is not None, "Index is None. Create an index before creating a query engine."
-        self._query_engine = self._index.as_query_engine(llm=self._chat_model)
-        print(f"--Index created in {round(time.time() - start, 2)} seconds--")
-
     def ask_agent(self, prompt: str) -> StreamingResponse:
         """
         Asks the agent a question from the user and returns the response.
@@ -211,6 +187,43 @@ class PDFAgent():
         assert response, "Response from the agent is None."
         print(f"--Agent response generator ready in {round(time.time() - start, 2)}s.--\n")
         return response
+    
+
+
+
+
+
+
+
+
+
+
+
+
+
+    # def create_index_from_chunks(self, chunks: List[dict]) -> None:
+    #     """
+    #     Creates a vector store index from content chunks with rich metadata.
+    #     Each chunk becomes a separate Document for better retrieval granularity.
+    #     """
+    #     assert isinstance(chunks, list), f"Chunks should be a list, instead got {type(chunks)}."
+
+    #     start = time.time()
+
+    #     # Create LlamaIndex documents from prepared chunks
+    #     documents = []
+    #     for chunk in chunks:
+    #         assert isinstance(chunk, dict), f"Each chunk should be a dictionary, instead got {type(chunk)}."
+    #         doc = Document(
+    #             text=chunk['content'],
+    #             metadata=chunk['metadata']
+    #         )
+    #         documents.append(doc)
+ 
+    #     self._index = VectorStoreIndex.from_documents(documents, show_progress=True)
+    #     assert self._index is not None, "Index is None. Create an index before creating a query engine."
+    #     self._query_engine = self._index.as_query_engine(llm=self._chat_model)
+    #     print(f"--Index created in {round(time.time() - start, 2)} seconds--")
 
 
 

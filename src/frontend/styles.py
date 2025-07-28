@@ -6,10 +6,6 @@ submenu_button = ft.ButtonStyle(
     padding=10
 )
 
-menubar = ft.MenuStyle(
-    
-)
-
 class Dimensions:
     """Constants that define layout and UI dimensions throughout the app."""
 

@@ -24,50 +24,52 @@ def main(page: ft.Page):
         """
         if message_input.value.strip() == "":
             return
-        else:
-            user_message = message_input.value.strip()
-            user_text_block = ft.Text(f"{user_message}", **TextStyles.message_text())
-            user_row = ChatStyles.create_user_message_row(bubble_content=user_text_block)
-            chat_messages.controls.append(user_row)
-            message_input.value = ""
-            # Show loading indicator
-            loading()
-            # Disable send button during processing
-            send_button.disabled = True
-            sidebar_content.update()
-            
-            # Ask the agent
-            start_time = time.time()
-            response = service.agent.ask_agent(user_message) # response is a generator object
-            
-            # Create placeholder to accumulate response, and a flag to wait for first token arrival
-            agent_text_block = ft.Text("", **TextStyles.message_text())
-            agent_row = ChatStyles.create_agent_message_row(bubble_content=agent_text_block)
-            first_token = True
-            chat_messages.width
-            for text in response.response_gen:
-                if first_token:
-                    del chat_messages.controls[-1] # remove loading
-                    chat_messages.controls.append(agent_row)
-                    chat_messages.update()
-                    first_token = False
-                # display the rest of the stream
-                if "\n" in text:
-                    text = text.strip("\n")
-                agent_row.controls[0].controls[0].content.value += text
-                agent_row.update()
-            # add elapsed time
-            elapsed_time = time.time() - start_time
-            elapsed_time_text = ft.Text(f"({elapsed_time:.2f}s)", **TextStyles.elapsed_time())
-            agent_row.controls[0].controls.append(elapsed_time_text) # add time block to the chat bubble column after bubble container, so it appears below agent text
 
-            # Re-enable send button
-            send_button.disabled = False
-            sidebar_content.update()
+        user_message = message_input.value.strip()
+        user_text_block = ft.Text(f"{user_message}", **TextStyles.message_text())
+        user_row = ChatStyles.create_user_message_row(bubble_content=user_text_block)
+        chat_messages.controls.append(user_row)
+        message_input.value = ""
+        # Show loading indicator
+        loading_agent()
+        # Disable send button during processing
+        send_button.disabled = True
+        sidebar_content.update()
+        chat_messages.scroll_to(offset=-1, curve=ft.AnimationCurve.EASE_OUT)
+        
+        # Ask the agent
+        start_time = time.time()
+        response = service.agent.ask_agent(user_message) # response is a generator object
+        
+        # Create placeholder to accumulate response, and a flag to wait for first token arrival
+        agent_text_block = ft.Text("", **TextStyles.message_text())
+        agent_row = ChatStyles.create_agent_message_row(bubble_content=agent_text_block)
+        first_token = True
+        for text in response.response_gen:
+            if first_token:
+                del chat_messages.controls[-1] # remove loading
+                chat_messages.controls.append(agent_row)
+                chat_messages.update()
+                first_token = False
+            # display the rest of the stream
+            if "\n" in text:
+                text = text.strip("\n")
+            agent_row.controls[0].controls[0].content.value += text
+            agent_row.update()
+            chat_messages.scroll_to(offset=-1, curve=ft.AnimationCurve.EASE_OUT)
+        # add elapsed time
+        elapsed_time = time.time() - start_time
+        elapsed_time_text = ft.Text(f"({elapsed_time:.2f}s)", **TextStyles.elapsed_time())
+        agent_row.controls[0].controls.append(elapsed_time_text) # add time block to the chat bubble column after bubble container, so it appears below agent text        
 
-    def loading() -> None:
+        # Re-enable send button
+        send_button.disabled = False
+        sidebar_content.update()
+        chat_messages.scroll_to(offset=-1, curve=ft.AnimationCurve.EASE_OUT)
+
+    def loading_agent() -> None:
         """
-        Create and add a loading indicator to the UI.
+        Create and add a loading indicator for agent responses to the UI.
         """
         loading_container = ft.Row(
             controls=[
@@ -78,6 +80,28 @@ def main(page: ft.Page):
             alignment=ft.MainAxisAlignment.START
         )
         chat_messages.controls.append(loading_container)
+
+    def loading_file() -> None:
+        """
+        Create and add to the UI a loading indicator when waiting for the pdf to load (including index creation).
+        """
+        loading_container = ft.Container(
+            content=ft.ProgressRing(
+                width=100,
+                height=100,
+                stroke_width=5,
+                badge=ft.Badge(
+                    text="Getting your PDF ready...",
+                    alignment=ft.Alignment(x=-1.7, y=2),
+                    bgcolor=ft.Colors.TRANSPARENT,
+                    text_color="#316093"
+                ),
+                expand=True
+            ),
+            alignment=ft.Alignment(x=0, y=0)
+        )
+        file_column.controls.append(loading_container)
+        file_column.update()
 
     def display_parsed_content(content: str) -> None:
         """
@@ -126,10 +150,13 @@ def main(page: ft.Page):
         if e.files != None:
             # clear old pdf from UI
             file_column.controls.clear()
+            # add loading indicator
+            loading_file()
             # load new pdf (returns a list of image paths to use in the UI)
             image_paths = service.load_pdf(e.files[0].path)
             image_pages = [ft.Image(src=path, fit=ft.ImageFit.CONTAIN) for path in image_paths]
             image_containers = [ft.Container(content=image_page, padding=10) for image_page in image_pages]
+            file_column.controls.clear() # remove loading ring
             file_column.controls.extend(image_containers)
             file_column.update()
             print(f"--{len(file_column.controls)} pages from {e.files[0].name} rendered!--")
@@ -155,7 +182,7 @@ def main(page: ft.Page):
     chat_messages = ft.Column(
         controls=[],
         expand=True,
-        scroll=ft.ScrollMode.AUTO,
+        scroll=ft.ScrollMode.ALWAYS,
     )
 
     message_input = ft.TextField(

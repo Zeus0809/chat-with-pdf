@@ -166,7 +166,7 @@ class DockerLLM(CustomLLM):
         self,
         model: str,
         base_url: str = "http://localhost:12434",
-        temperature: float = 1.0,
+        temperature: float = 0.1,
         timeout: float = 60.0,
         max_tokens: int = 512,
         *args: Any,
