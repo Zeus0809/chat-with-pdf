@@ -1,4 +1,4 @@
-import sys, os, time
+import sys, os, time, threading
 
 # Add the project root to the Python path
 project_root = os.path.join(os.path.dirname(__file__), '..', '..')
@@ -81,27 +81,29 @@ def main(page: ft.Page):
         )
         chat_messages.controls.append(loading_container)
 
-    def loading_file() -> None:
+    def loading_file() -> ft.ProgressRing:
         """
         Create and add to the UI a loading indicator when waiting for the pdf to load (including index creation).
         """
-        loading_container = ft.Container(
-            content=ft.ProgressRing(
-                width=100,
-                height=100,
-                stroke_width=5,
-                badge=ft.Badge(
-                    text="Getting your PDF ready...",
-                    alignment=ft.Alignment(x=-1.7, y=2),
-                    bgcolor=ft.Colors.TRANSPARENT,
-                    text_color="#316093"
-                ),
-                expand=True
+        ring=ft.ProgressRing(
+            width=100,
+            height=100,
+            stroke_width=5,
+            badge=ft.Badge(
+                text="Getting your PDF ready...",
+                alignment=ft.Alignment(x=-1.7, y=2),
+                bgcolor=ft.Colors.TRANSPARENT,
+                text_color="#316093"
             ),
+            expand=True
+        )
+        loading_container = ft.Container(
+            content=ring,
             alignment=ft.Alignment(x=0, y=0)
         )
         file_column.controls.append(loading_container)
         file_column.update()
+        return ring
 
     def display_parsed_content(content: str) -> None:
         """
@@ -151,9 +153,39 @@ def main(page: ft.Page):
             # clear old pdf from UI
             file_column.controls.clear()
             # add loading indicator
-            loading_file()
+            progress_ring = loading_file()
+
+            stop_animation = [False] # flag to stop animation early if pdf loading overtook it
+
+            def animate_progress():
+                progress = 0
+                while not stop_animation[0] and progress < 0.95:
+                    progress += 0.0095
+                    progress_ring.value = progress
+                    file_column.update()
+                    time.sleep(0.1)
+                # Hold at 95% to wait for pdf to finish loading
+                pulse_values = [0.93, 0.95, 0.97, 0.95]
+                pulse_index = 0
+                while not stop_animation[0]:
+                    progress_ring.badge.text = "It's a large file, hang tight..."
+                    progress_ring.value = pulse_values[pulse_index]
+                    file_column.update()
+                    pulse_index = (pulse_index + 1) % len(pulse_values) # this cycles through values 0-1-2-3-0-...
+                    time.sleep(0.3)
+
+            # start animation in a new thread
+            threading.Thread(target=animate_progress, daemon=True).start()
+
             # load new pdf (returns a list of image paths to use in the UI)
             image_paths = service.load_pdf(e.files[0].path)
+
+            # complete animation
+            stop_animation[0] = True
+            progress_ring.value = 1.0
+            file_column.update()
+            time.sleep(0.1)
+
             image_pages = [ft.Image(src=path, fit=ft.ImageFit.CONTAIN) for path in image_paths]
             image_containers = [ft.Container(content=image_page, padding=10) for image_page in image_pages]
             file_column.controls.clear() # remove loading ring
