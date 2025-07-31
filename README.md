@@ -1,116 +1,154 @@
-# Chat With PDF 0.0.1
+# Chat With PDF
 
-A smart PDF analysis application that extracts and classifies document content using advanced text processing and local LLM integration.
+A desktop application that enables interactive conversations with PDF documents using local Large Language Models (LLMs). Built with Python and Flet, this application provides a complete solution for document analysis and questioning while maintaining full privacy through local AI processing.
 
 ## Features
 
-### Content Type Classification
+### 🖥️ Desktop GUI Application
+- **Modern Interface**: Built with Flet for cross-platform compatibility
+- **Split-Pane Design**: PDF viewer alongside interactive chat interface
+- **Real-Time PDF Rendering**: Convert PDF pages to images for in-app viewing
+- **Resizable Interface**: Drag-to-resize sidebar with smooth animations
+- **Loading Indicators**: Progressive loading animations for better UX
 
-The application automatically analyzes and classifies text blocks in PDF documents using frequency-based font analysis:
+### 🤖 Local AI Integration
+- **Multiple LLM Backends**: Support for LlamaCPP, Ollama, and Docker Model Runner
+- **Streaming Responses**: Real-time chat with response timing information
+- **RAG Pipeline**: Retrieval-Augmented Generation using LlamaIndex
+- **Local Embeddings**: Custom GGUF embedding model support
+- **Privacy-First**: All processing happens locally, no cloud dependencies
 
-#### Classification Rules
+### 📄 PDF Processing
+- **PyMuPDF Integration**: Robust PDF loading and page conversion
+- **Image Rendering**: High-quality page rendering at 150 DPI
+- **File Management**: Automatic cleanup and organization of processed files
+- **Multi-Page Support**: Handle documents of any size
 
-1. **Document Analysis**: The system first analyzes font size frequency across the entire document
-2. **Body Text Identification**: The most frequently used font size is classified as `body_text`
-3. **Content Type Assignment**:
-   - **Heading**: Largest font size in the document (above body text size)
-   - **Sub-heading**: Any font size between heading and body text
-   - **Body Text**: Most frequent font size (baseline for classification)
-   - **Footnote**: Smallest font size in the document (below body text size)
-   - **Other**: Any remaining font sizes below body text (but not the smallest)
-   - **List Item**: Text blocks starting with bullets (`•`, `-`, `*`), numbers (`1.`, `2)`), or letters (`a.`, `b)`)
-   - **Mixed Content**: Blocks containing multiple font sizes or styles
+### 🔧 Advanced Architecture
+- **Custom Integrations**: Purpose-built LlamaIndex extensions
+- **Service Layer**: Clean separation between UI and AI components
+- **Agent System**: Intelligent document querying with context awareness
+- **Flexible Backend**: Easy switching between different AI model providers
 
-#### Font Style Detection
+## Architecture
 
-The system also analyzes font styling flags from PyMuPDF:
-- **Plain Text** (flag 4): Regular text
-- **Italic Text** (flag 6): Emphasized text
-- **Bold Text** (flag 20): Strong emphasis
+### Frontend (Flet-based GUI)
+- **Framework**: Python-based Flet framework for cross-platform desktop apps
+- **Layout**: Responsive split-pane design with PDF viewer and chat sidebar
+- **Components**:
+  - File picker with PDF upload support
+  - Real-time page rendering with scroll support
+  - Chat interface with styled message bubbles
+  - Resizable sidebar with drag functionality
+  - Menu bar with File and Chat options
+  - Progress animations and loading indicators
 
-#### Supported List Patterns
+### Backend Service Layer
+- **PDFService**: Handles file operations, PDF processing, and AI coordination
+- **File Management**: Automatic organization of storage/data and storage/ui directories
+- **PDF Processing**: PyMuPDF integration for document loading and page conversion
+- **Image Generation**: Convert PDF pages to PNG images for UI display
 
-- Bullet points: `•`, `-`, `*`, `◦`
-- Numbered lists: `1`, `1.`, `1)`, `(1)`
-- Lettered lists: `a`, `a.`, `a)`, `(a)`
-- Supports up to 99 numbered items and a-z lettered items
+### AI Agent System
+- **PDFAgent**: Implements RAG pipeline for document querying
+- **Multi-Backend Support**:
+  - **LlamaCPP**: Local GGUF models (e.g., Mistral 7B)
+  - **Ollama**: Local model serving (e.g., Gemma3n)
+  - **Docker Model Runner**: Containerized model serving (experimental)
+- **LlamaIndex Integration**: Vector indexing and query engine
+- **Streaming**: Real-time response generation with timing metrics
 
-## Run the app
+### Custom Integrations
+- **LlamaCppEmbedding**: Custom embedding model for GGUF format support
+- **DockerLLM**: RESTful API integration with Docker Model Runner
+- **Multi-Modal Support**: Text embeddings with future image capability
 
-### uv
+## Technical Stack
 
-Run as a desktop app:
+### Core Dependencies
+- **UI Framework**: Flet 0.28.2
+- **PDF Processing**: PyMuPDF, PDFPlumber
+- **AI/ML Stack**: LlamaIndex, llama-cpp-python
+- **Models**: Local GGUF models, Ollama integration
+- **Environment**: Virtual environment with Python 3.9+
 
-```
-uv run flet run
-```
+### Supported Platforms
+- **macOS**: Native support with Metal acceleration
+- **Windows**: Full compatibility with Windows-specific optimizations
+- **Linux**: Cross-platform support
 
-Run as a web app:
-
-```
-uv run flet run --web
-```
-
-### Poetry
-
-Install dependencies from `pyproject.toml`:
-
-```
-poetry install
-```
-
-Run as a desktop app:
-
-```
-poetry run flet run
-```
-
-Run as a web app:
-
-```
-poetry run flet run --web
-```
-
-For more details on running the app, refer to the [Getting Started Guide](https://flet.dev/docs/getting-started/).
-
-## Build the app
-
-### Android
-
-```
-flet build apk -v
-```
-
-For more details on building and signing `.apk` or `.aab`, refer to the [Android Packaging Guide](https://flet.dev/docs/publish/android/).
-
-### iOS
+## Project Structure
 
 ```
-flet build ipa -v
+chat-with-pdf/
+├── src/
+│   ├── frontend/          # Flet UI components and styles
+│   │   ├── main.py       # Main application entry point
+│   │   └── styles.py     # UI styling and layout definitions
+│   ├── backend/          # Core business logic
+│   │   ├── service.py    # PDF processing and file management
+│   │   └── agent.py      # AI agent and RAG implementation
+│   └── assets/           # Application assets
+├── llamaindex_utils/     # Custom LlamaIndex integrations
+│   ├── integrations.py  # LlamaCppEmbedding and DockerLLM
+│   └── __init__.py
+├── local_models/         # Local AI models storage
+│   ├── embed/           # Embedding models (GGUF)
+│   ├── text/            # Chat models
+│   └── vision/          # Future vision models
+├── storage/             # Runtime data
+│   ├── data/            # Document index storage
+│   ├── temp/            # Temporary processing files
+│   └── ui/              # PDF page images for UI
+├── myvenv/              # Virtual environment
+├── pyproject.toml       # Project configuration
+├── requirements.txt     # Python dependencies
+└── .env                 # Environment variables
 ```
 
-For more details on building and signing `.ipa`, refer to the [iOS Packaging Guide](https://flet.dev/docs/publish/ios/).
+## Configuration
 
-### macOS
-
-```
-flet build macos -v
-```
-
-For more details on building macOS package, refer to the [macOS Packaging Guide](https://flet.dev/docs/publish/macos/).
-
-### Linux
-
-```
-flet build linux -v
+### Environment Variables (.env)
+```env
+DATA_PATH=storage/data                    # Document index storage
+UI_PATH=storage/ui                        # PDF page images
+EMBED_MODEL_PATH=./local_models/embed/... # Embedding model path
+DOCKER_MODEL_RUNNER_URL=http://localhost:12434  # Docker backend URL
+LOGO_PATH=src/assets/logo.png            # Application logo
 ```
 
-For more details on building Linux package, refer to the [Linux Packaging Guide](https://flet.dev/docs/publish/linux/).
+### Model Configuration
+- **Default Backend**: Docker Model Runner with Gemma3n
+- **Alternative Backends**: LlamaCPP (Mistral 7B), Ollama (Gemma3n)
+- **Embedding Model**: Nomic Embed Text v2 MOE (Q8_0 GGUF)
 
-### Windows
+For detailed packaging instructions, refer to the [Flet Documentation](https://flet.dev/docs/publish/).
 
-```
-flet build windows -v
-```
+## Troubleshooting
 
-For more details on building Windows package, refer to the [Windows Packaging Guide](https://flet.dev/docs/publish/windows/).
+### Common Issues
+- **Model Loading**: Ensure embedding model is present in `local_models/embed/`
+- **Docker Backend**: Docker Desktop must be running for Docker Model Runner
+- **File Permissions**: Check write permissions for `storage/` directories
+- **Memory Usage**: Large PDFs may require significant RAM for processing
+
+### Performance Tips
+- **Model Selection**: Choose appropriate model size for your hardware
+- **PDF Optimization**: Smaller PDFs process faster and use less memory
+- **Backend Selection**: Try different LLM backends for optimal performance
+
+## Contributing
+
+This project uses a modular architecture that makes it easy to:
+- Add new LLM backends
+- Implement additional file formats
+- Enhance UI components
+- Integrate new AI models
+
+## License
+
+This is a portfolio project developed to enhance software development and AI skills. 
+
+---
+
+**Chat With PDF** - Bringing AI-powered document analysis to your desktop with complete privacy and local processing.
