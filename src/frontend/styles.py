@@ -1,6 +1,4 @@
 import flet as ft
-from flet.core.control import OptionalNumber
-
 
 submenu_button = ft.ButtonStyle(
     padding=10

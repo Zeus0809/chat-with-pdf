@@ -1,9 +1,8 @@
-import pymupdf as pd
-from typing import List, Optional
 from src.backend.agent import PDFAgent
-from src.backend.parser import PDFParser
+from typing import List, Optional
 from dotenv import load_dotenv
 import time, os, shutil
+import pymupdf as pd
 
 load_dotenv(verbose=True)
 
@@ -13,7 +12,6 @@ class PDFService:
     """
     def __init__(self):
         self.pdf: Optional[pd.Document] = None  # raw document handle
-        self.parser = PDFParser() # dependency injection for the parser
         self.agent = PDFAgent(llm_backend="docker") # dependency injection for the agent
         # make sure storage/ui exists and clear it
         os.makedirs("storage/ui", exist_ok=True)
@@ -37,15 +35,6 @@ class PDFService:
         print(f"-*-File {os.path.basename(file_path)} loaded successfully in {round(time.time()-start, 2)}s!-*-")
 
         self.agent.create_index(file_path)
-
-        # # run the parsing (change to async later)
-        # self.parser.parse_to_blocks(self.pdf)
-
-        # # run chunk generation
-        # self.parser.build_rich_chunked_content()
-
-        # # create an index and a query engine
-        # self.agent.create_index_from_chunks(self.parser.pdf_chunks)
 
         return self._get_image_paths()
 

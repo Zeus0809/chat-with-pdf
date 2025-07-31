@@ -105,14 +105,6 @@ def main(page: ft.Page):
         file_column.update()
         return ring
 
-    def display_parsed_content(content: str) -> None:
-        """
-        This is a temporary function for debugging purposes.
-        """
-        chat_messages.controls.clear()
-        chat_messages.controls.append(ft.Text(content))
-        chat_messages.update()
-
     def on_window_resize(e: ft.WindowResizeEvent) -> None:
         """
         Handles window resize events to adjust sidebar height.

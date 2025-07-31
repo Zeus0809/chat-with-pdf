@@ -1,13 +1,13 @@
-from llama_index.core import VectorStoreIndex, Document, Settings, SimpleDirectoryReader
+from llama_index.core import VectorStoreIndex, Settings, SimpleDirectoryReader
 from llama_index.core.base.response.schema import StreamingResponse
 from llama_index.llms.llama_cpp import LlamaCPP
 from llama_index.llms.ollama import Ollama
 
 from llamaindex_utils.integrations import LlamaCppEmbedding, DockerLLM
 
+import os, time, shutil, requests, subprocess, platform
 from dotenv import load_dotenv
 from typing import List
-import os, time, shutil, requests, subprocess, platform
 
 load_dotenv(verbose=True)
 
@@ -84,21 +84,6 @@ class PDFAgent():
         # Index and query engine
         self._index = None
         self._query_engine = None
-
-    @property
-    def embed_model_name(self) -> str:
-        model_name = os.path.basename(self._embed_model_path)
-        assert isinstance(Settings.embed_model, LlamaCppEmbedding), f"Embedding model ({model_name}) failed to initialize."
-        return model_name
-
-    @property
-    def chat_model_name(self) -> str:
-        assert self._chat_model, "Chat model failed to initialize."
-        return os.path.basename(self._chat_model_path)
-
-    @property
-    def get_index_summary(self) -> str:
-        return self._index.summary
 
     def ensure_docker_running(self) -> None:
         """
