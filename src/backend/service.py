@@ -1,8 +1,10 @@
-from src.backend.agent import PDFAgent
-from typing import List, Optional
+from typing import List, Optional, TYPE_CHECKING
 from dotenv import load_dotenv
 import time, os, shutil
-import pymupdf as pd
+
+if TYPE_CHECKING:
+    from src.backend.agent import PDFAgent
+    import pymupdf as pd
 
 load_dotenv(verbose=True)
 
@@ -10,9 +12,9 @@ class PDFService:
     """
     Service class for handling all PDF operations including loading, parsing, and querying.
     """
-    def __init__(self):
-        self.pdf: Optional[pd.Document] = None  # raw document handle
-        self.agent = PDFAgent(llm_backend="docker") # dependency injection for the agent
+    def __init__(self, agent: "PDFAgent" =None):
+        self.pdf: Optional["pd.Document"] = None  # raw document handle
+        self.agent = agent or self._create_default_agent()
         # make sure storage/ui exists and clear it
         os.makedirs("storage/ui", exist_ok=True)
         self._clear_ui_folder()
@@ -24,6 +26,7 @@ class PDFService:
         Discards old PDF, loads a new one from the given path.
         Returns a list of image paths for each page in the PDF to be rendered in the UI.
         """
+        import pymupdf as pd
         start = time.time()
         self._discard_pdf()
 
@@ -67,6 +70,11 @@ class PDFService:
         assert os.listdir("storage/ui"), "UI storage folder is empty. Please load a PDF file first."
         paths = sorted([os.path.abspath(os.path.join("storage/ui", fname)) for fname in os.listdir("storage/ui")])
         return paths
+
+    def _create_default_agent(self):
+        """Create default agent for production use"""
+        from src.backend.agent import PDFAgent
+        return PDFAgent(llm_backend="docker")
 
     @staticmethod
     def _clear_ui_folder() -> None:

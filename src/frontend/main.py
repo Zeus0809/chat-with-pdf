@@ -15,7 +15,7 @@ def main(page: ft.Page):
     page.horizontal_alignment = ft.CrossAxisAlignment.CENTER
     load_dotenv()
 
-    # Initialize backend service, that also initializes the agent
+    # Initialize backend service, that also initializes the agent (using docker model runner by default)
     service = PDFService()
 
     def on_message_send(e) -> None:
