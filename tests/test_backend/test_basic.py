@@ -1,4 +1,4 @@
-from unittest.mock import Mock
+from unittest.mock import patch, Mock
 
 def test_temp_dir_fixture(temp_dir):
     """Test that the temp directory fixture works"""
@@ -22,7 +22,7 @@ def test_pdf_service_with_mock_agent():
 
 def test_import_paths():
     try:
-        from backend.agent import PDFAgent
+        from src.backend.agent import PDFAgent
         print("backend.agent works!")
     except ImportError as e:
         print("backend.agent failed: ", e)
@@ -32,3 +32,38 @@ def test_import_paths():
         print("src.backend.agent works!")
     except ImportError as e:
         print("src.backend.agent failed: ", e)
+
+@patch('pymupdf.open')
+def test_pdf_service_load_document(mock_pdf_open, temp_dir):
+    """Test loading a PDF document"""
+    mock_pdf_path = temp_dir / "test.pdf"
+    mock_pdf_path.touch()
+
+    mock_agent = Mock()
+    from src.backend.service import PDFService
+
+    with patch.object(PDFService, '_get_image_paths') as mock_get_paths, \
+        patch.object(PDFService, '_convert_pages_to_images') as mock_convert:
+
+        mock_document = Mock()
+        mock_pdf_open.return_value = mock_document
+        mock_get_paths.return_value = ['page_001.png', 'page_002.png']
+
+        service = PDFService(agent=mock_agent)
+        result = service.load_pdf(str(mock_pdf_path))
+
+        # 1: PDF was loaded
+        mock_pdf_open.assert_called_once_with(str(mock_pdf_path))
+
+        # 2: Index was created via agent
+        mock_agent.create_index.assert_called_once_with(str(mock_pdf_path))
+
+        # 3: Image paths were returned
+        assert result == ['page_001.png', 'page_002.png']
+
+
+        
+
+
+
+

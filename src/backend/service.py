@@ -49,7 +49,6 @@ class PDFService:
             self.pdf.close()
             print("--Old file closed!--")
             self._clear_ui_folder()
-            self.parser.clear_parsed_content()
             self._clear_data_folder()
 
     def _convert_pages_to_images(self, file_name: str) -> None:
