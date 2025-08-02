@@ -7,6 +7,7 @@ sys.path.insert(0, project_root)
 import flet as ft
 from dotenv import load_dotenv
 from src.backend.service import PDFService
+from src.backend.agent import PDFAgent
 from styles import ChatStyles, TextStyles, Dimensions
 
 def main(page: ft.Page):
