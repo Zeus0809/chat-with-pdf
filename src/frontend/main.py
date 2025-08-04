@@ -22,7 +22,6 @@ def main(page: ft.Page):
 
     # Initialize backend service, that also initializes the agent (using docker model runner by default)
     service = PDFService()
-
     def on_message_send(e) -> None:
         """
         Handles submitting user prompt to the agent and receiving the response.

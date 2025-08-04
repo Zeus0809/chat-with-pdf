@@ -9,7 +9,10 @@ from dotenv import load_dotenv
 load_dotenv(verbose=True)
 
 CHAT_MODELS = {
-        "gemma3n-ollama" : "gemma3n:latest"
+        "gemma3n" : "ai/gemma3n",
+        "qwen3" : "ai/qwen3",
+        "smollm3" : "ai/smollm3",
+        "deepseek-llama" : "ai/deepseek-r1-distill-llama"
         # Try other models during development process -> pick one in the end
     }
 
@@ -25,7 +28,7 @@ class PDFAgent():
         if llm_backend == "docker":
             self.ensure_docker_running()
             # Initialize chat model with Ollama using Docker Model Runner (experiment)
-            self._chat_model = DockerLLM(model=CHAT_MODELS["gemma3n-docker"])
+            self._chat_model = DockerLLM(model=CHAT_MODELS["gemma3n"])
             print("\n\n###-Chat model initialized: Docker Model Runner with Gemma3n-###\n\n")
         else:
             raise ValueError(f"Unsupported LLM backend: {llm_backend}. Available options: 'docker'.")
