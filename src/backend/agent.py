@@ -10,10 +10,6 @@ load_dotenv(verbose=True)
 
 CHAT_MODELS = {
         "gemma3n" : "ai/gemma3n",
-        "qwen3" : "ai/qwen3",
-        "smollm3" : "ai/smollm3",
-        "deepseek-llama" : "ai/deepseek-r1-distill-llama"
-        # Try other models during development process -> pick one in the end
     }
 
 class PDFAgent():

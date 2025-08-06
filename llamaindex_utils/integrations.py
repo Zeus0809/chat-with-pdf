@@ -1,8 +1,15 @@
-from llama_index.core.base.llms.types import LLMMetadata, CompletionResponseGen, CompletionResponse
-from llama_index.core.llms.callbacks import llm_completion_callback
+from llama_index.core.base.llms.types import ( 
+    LLMMetadata,
+    CompletionResponseGen,
+    CompletionResponse,
+    ChatMessage,
+    ChatResponse,
+    ChatResponseGen
+)
+from llama_index.core.llms.callbacks import llm_completion_callback, llm_chat_callback
 from llama_index.core.bridge.pydantic import PrivateAttr, Field
 from llama_index.core.embeddings import MultiModalEmbedding
-from llama_index.core.llms.custom import CustomLLM
+from llama_index.core.llms.function_calling import FunctionCallingLLM
 from typing import Optional, List, Any
 from llama_cpp import Llama
 import requests, json
@@ -125,9 +132,10 @@ class LlamaCppEmbedding(MultiModalEmbedding):
         # For text queries, we can use the same embedding approach as normal text
         return self._text_model.embed(query)
 
-class DockerLLM(CustomLLM):
+class DockerLLM(FunctionCallingLLM):
     """
     Custom LLM class to use Docker Model Runner for chat models inside LlamaIndex's RAG pipeline.
+    Supports function calling.
     Docker Model Runner API docs: https://docs.docker.com/ai/model-runner/
     
     Main endpoints:
@@ -197,6 +205,9 @@ class DockerLLM(CustomLLM):
     def _get_completions_endpoint(self) -> str:
         return f"{self.base_url}/engines/llama.cpp/v1/completions"
     
+    def _get_chat_endpoint(self) -> str:
+        return f"{self.base_url}/engines/llama.cpp/v1/chat/completions"
+    
     @llm_completion_callback()
     def complete(self, prompt: str, **kwargs: Any) -> CompletionResponse:
         """
@@ -216,6 +227,11 @@ class DockerLLM(CustomLLM):
         return CompletionResponse(
             text=response_data["choices"][0]["text"]
         )
+    
+    @llm_completion_callback()
+    def acomplete(self):
+        """Just a placeholder"""
+        raise NotImplementedError('acomplete is not yet implemented in DockerLLM.')
     
     @llm_completion_callback()
     def stream_complete(self, prompt: str, **kwargs: Any) -> CompletionResponseGen:
@@ -269,6 +285,104 @@ class DockerLLM(CustomLLM):
                     continue
 
         return gen()
+
+    @llm_completion_callback()
+    def astream_complete(self):
+        """Just a placeholder"""
+        raise NotImplementedError('astream_complete is not yet implemented in DockerLLM.')
+
+    def _prepare_chat_with_tools(self):
+        """Just a placeholder"""
+        raise NotImplementedError('_prepare_chat_with_tools is not yet implemented in DockerLLM.')
+    
+    @llm_chat_callback()
+    def chat(self):
+        """Just a placeholder"""
+        raise NotImplementedError('chat is not yet implemented in DockerLLM.')
+    
+    @llm_chat_callback()
+    def achat(self):
+        """Just a placeholder"""
+        raise NotImplementedError('achat is not yet implemented in DockerLLM.')
+
+    @llm_chat_callback()
+    def stream_chat(self, messages: List[ChatMessage], **kwargs: Any) -> ChatResponseGen:
+        """
+        Implementing streaming chat with conversation context using Docker Model Runner's chat completions endpoint.
+        This method maintains conversation history and returns a generator for streaming responses.
+        """
+        # Convert LlamaIndex ChatMessage objects to OpenAI-compatible format
+        formatted_messages = []
+        for message in messages:
+            formatted_messages.append({
+                "role": message.role.value,  # Convert MessageRole enum to string
+                "content": message.content
+            })
+        
+        payload = {
+            "model": self.model,
+            "messages": formatted_messages,
+            "temperature": self.temperature,
+            "max_tokens": self.max_tokens,
+            "stream": True,
+            **kwargs
+        }
+
+        def gen() -> ChatResponseGen:
+            response = requests.post(
+                url=self._get_chat_endpoint(),
+                json=payload,
+                timeout=self.timeout,
+                stream=True
+            )
+            response.raise_for_status()
+            
+            content = ""
+            # The http response needs to be iterated over line by line as it comes in
+            for line in response.iter_lines(decode_unicode=True):
+                if not line or line == "[DONE]":
+                    continue
+
+                # Handle Server-Sent Events (SSE) format (remove 'data' prefix)
+                if line.startswith("data: "):
+                    line = line[6:]
+
+                try:
+                    data = json.loads(line)
+
+                    delta = ""
+                    # Extract delta from chat completion response format
+                    if "choices" in data and len(data["choices"]) > 0:
+                        choice = data["choices"][0]
+                        # For chat completions, delta is usually in choice.delta.content
+                        if "delta" in choice and "content" in choice["delta"]:
+                            delta = choice["delta"]["content"]
+                        # Fallback for other possible formats
+                        elif "message" in choice and "content" in choice["message"]:
+                            delta = choice["message"]["content"]
+                        elif "text" in choice:
+                            delta = choice["text"]
+                        
+                    if delta:
+                        content += delta
+                        # Create ChatResponse instead of CompletionResponse for chat methods
+                        chat_response = ChatResponse(
+                            message=ChatMessage(role="assistant", content=content),
+                            delta=delta,
+                            raw=data
+                        )
+                        yield chat_response
+                except (json.JSONDecodeError, KeyError, IndexError, TypeError):
+                    continue
+
+        return gen()
+
+    @llm_chat_callback()
+    def astream_chat(self):
+        """Just a placeholder"""
+        raise NotImplementedError('astream_chat is not yet implemented in DockerLLM.')
+
+    
 
 
         

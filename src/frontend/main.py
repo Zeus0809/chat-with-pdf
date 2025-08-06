@@ -11,7 +11,6 @@ sys.path.insert(0, project_root)
 import flet as ft
 from dotenv import load_dotenv
 from src.backend.service import PDFService
-from src.backend.agent import PDFAgent
 from styles import ChatStyles, TextStyles, Dimensions
 
 def main(page: ft.Page):
@@ -22,6 +21,7 @@ def main(page: ft.Page):
 
     # Initialize backend service, that also initializes the agent (using docker model runner by default)
     service = PDFService()
+
     def on_message_send(e) -> None:
         """
         Handles submitting user prompt to the agent and receiving the response.
