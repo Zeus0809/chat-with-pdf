@@ -1,9 +1,5 @@
 import sys, os, time, threading
 
-### ADD NEW FEATURE ###
-# automatic scrolling to the page where information is located -> tool calling with MCP
-### ADD NEW FEATURE ###
-
 # Add the project root to the Python path
 project_root = os.path.join(os.path.dirname(__file__), '..', '..')
 sys.path.insert(0, project_root)
@@ -22,7 +18,7 @@ def main(page: ft.Page):
     # Initialize backend service, that also initializes the agent (using docker model runner by default)
     service = PDFService()
 
-    def on_message_send(e) -> None:
+    async def on_message_send(e) -> None:
         """
         Handles submitting user prompt to the agent and receiving the response.
         """
@@ -43,23 +39,40 @@ def main(page: ft.Page):
         
         # Ask the agent
         start_time = time.time()
-        response = service.agent.ask_agent(user_message) # response is a generator object
+        response = await service.agent.ask_agent(user_message)
         
         # Create placeholder to accumulate response, and a flag to wait for first token arrival
         agent_text_block = ft.Text("", **TextStyles.message_text())
         agent_row = ChatStyles.create_agent_message_row(bubble_content=agent_text_block)
         first_token = True
-        for text in response.response_gen:
-            if first_token:
-                del chat_messages.controls[-1] # remove loading
-                chat_messages.controls.append(agent_row)
-                chat_messages.update()
-                first_token = False
-            # display the rest of the stream
-            if "\n" in text:
-                text = text.strip("\n")
-            agent_row.controls[0].controls[0].content.value += text
-            agent_row.update()
+        
+        # Check if we have a streaming response or a completed response
+        if hasattr(response, 'stream_events'):
+            # Streaming response - iterate over events
+            for event in response.stream_events():
+                if first_token:
+                    del chat_messages.controls[-1] # remove loading
+                    chat_messages.controls.append(agent_row)
+                    chat_messages.update()
+                    first_token = False
+                # display the rest of the stream
+                delta = str(event.delta)
+                if "\n" in delta:
+                    delta = delta.strip("\n")
+                agent_row.controls[0].controls[0].content.value += delta
+                agent_row.update()
+                chat_messages.scroll_to(offset=-1, curve=ft.AnimationCurve.EASE_OUT)
+        else:
+            # Completed response - display all at once
+            del chat_messages.controls[-1] # remove loading
+            if hasattr(response, 'message'):
+                # AgentOutput with message
+                agent_text_block.value = str(response.message)
+            else:
+                # Plain string response
+                agent_text_block.value = str(response)
+            chat_messages.controls.append(agent_row)
+            chat_messages.update()
             chat_messages.scroll_to(offset=-1, curve=ft.AnimationCurve.EASE_OUT)
         # add elapsed time
         elapsed_time = time.time() - start_time

@@ -1,9 +1,12 @@
 from llama_index.core import VectorStoreIndex, Settings, SimpleDirectoryReader
-from llama_index.core.base.response.schema import StreamingResponse
+from llama_index.core.base.base_query_engine import BaseQueryEngine
+from llama_index.core.agent.workflow import FunctionAgent
+from llama_index.core.tools import FunctionTool
 
 from llamaindex_utils.integrations import LlamaCppEmbedding, DockerLLM
 
 import os, time, shutil, requests, subprocess, platform
+# from typing import AsyncGenerator, TYPE_CHECKING
 from dotenv import load_dotenv
 
 load_dotenv(verbose=True)
@@ -22,7 +25,7 @@ class PDFAgent():
 
         # Initialize chat model with the specified backend
         if llm_backend == "docker":
-            self.ensure_docker_running()
+            self._ensure_docker_running()
             # Initialize chat model with Ollama using Docker Model Runner (experiment)
             self._chat_model = DockerLLM(model=CHAT_MODELS["gemma3n"])
             print("\n\n###-Chat model initialized: Docker Model Runner with Gemma3n-###\n\n")
@@ -33,7 +36,10 @@ class PDFAgent():
         self._index = None
         self._query_engine = None
 
-    def ensure_docker_running(self) -> None:
+        # Agent with function caling
+        self._function_agent = None
+
+    def _ensure_docker_running(self) -> None:
         """
         Ensures that the Docker engine is running so that Docker Model Runner is available. If not, starts it.
         """
@@ -67,6 +73,39 @@ class PDFAgent():
                 except:
                     continue
 
+    def _initialize_agent(self) -> None:
+        """Create tools from existing functionality and pass them to FunctionAgent"""
+        assert isinstance(self._query_engine, BaseQueryEngine), f"Make sure _query_engine is created before you initialize the agent. Type received: {type(self._query_engine)}"
+        assert isinstance(self._chat_model, DockerLLM), f"Make sure _chat_model is initialized before initializing the agent. Type received: {type(self._chat_model)}" 
+        
+        # Create a debug wrapper for the query engine
+        def debug_rag_query(query: str) -> str:
+            print(f"🔧 RAG TOOL CALLED with query: {query}")
+            result = self._query_engine.query(query)
+            print(f"🔧 RAG TOOL RESULT: {str(result)[:200]}...")
+            return str(result)
+        
+        # RAG tool with debug wrapper
+        rag_tool = FunctionTool.from_defaults(
+            fn=debug_rag_query,
+            name="rag_query",
+            description=os.getenv("RAG_TOOL_DESC")
+        )
+        
+        # page nav tool
+        # goto_page_tool = FunctionTool.from_defaults(
+        #     fn=self.go_to_page,
+        #     name="goto_page",
+        #     description="Use this tool when the user asks to be taken to a particular page in the PDF document. Input: page number. You should obtain the page number either from the user question, or from the conversation context."
+        # )
+        
+        # agent with more explicit prompting
+        self._function_agent = FunctionAgent(
+            tools=[rag_tool],
+            llm=self._chat_model,
+            system_prompt=os.getenv("AGENT_SYS_PROMPT")
+        )
+
     def create_index(self, file_path: str) -> None:
         """
         The simplest, baseline way to create an index using LlamaIndex.
@@ -79,18 +118,70 @@ class PDFAgent():
         assert self._index is not None, "Index is None. Create an index before creating a query engine."
         self._query_engine = self._index.as_query_engine(llm=self._chat_model, streaming=True)
         print(f"--Index created in {round(time.time() - start, 2)}s.--")
+        self._initialize_agent()
+        print(f"--Function Agent initialized--")
 
-    def ask_agent(self, prompt: str) -> StreamingResponse:
+    async def ask_agent(self, prompt: str):
         """
-        Asks the agent a question from the user and returns the response.
+        Asks the agent a question from the user and returns the response content.
         """
         assert isinstance(prompt, str), f"Prompt should be a string, instead got {type(prompt)}."
-        assert self._query_engine is not None, "Query engine is None. Please call PDFAgent.create_index_from_chunks() before asking the agent."
-        start = time.time()
-        response = self._query_engine.query(prompt) # returns a generator
-        assert response, "Response from the agent is None."
-        print(f"--Agent response generator ready in {round(time.time() - start, 2)}s.--\n")
-        return response
+
+        print(f"🤖 Agent received prompt: {prompt}")
+        
+        # Run the agent and get the result
+        result = await self._function_agent.run(user_msg=prompt)
+        
+        print(f"🤖 Agent returned type: {type(result)}")
+        print(f"🤖 Agent returned: {str(result)[:200]}...")
+        
+        # Check if we got an AgentOutput (final result) or WorkflowHandler (streaming)
+        if hasattr(result, 'response'):
+            # AgentOutput case - return the response content
+            print(f"🤖 Returning response: {str(result.response)[:200]}...")
+            return result.response
+        elif hasattr(result, 'stream_events'):
+            # WorkflowHandler case - return as-is for streaming
+            print("🤖 Returning streaming handler")
+            return result
+        else:
+            # Fallback - return whatever we got
+            print("🤖 Returning fallback result")
+            return result
+    
+    def go_to_page():
+        pass
+    
+
+
+# Last convo with Copilot (we're gonna implement a FunctionAgent and make the UI async to allow tool calling):
+
+# Missing imports you'll need:
+
+# QueryEngineTool and FunctionTool from llama_index.core.tools
+# FunctionAgent and AgentStream from llama_index.core.agent.workflow
+# AsyncGenerator from typing
+# asyncio module
+# New instance variables to add in init:
+
+# self._function_agent = None (to store the FunctionAgent)
+# New method to add after create_index:
+
+# _initialize_function_agent() method that creates the RAG tool from your existing query engine, creates a goto_page tool, and initializes the FunctionAgent with both tools
+# New method for page navigation:
+
+# _go_to_page_fn(page_number: int) method that will be called by the agent when users request page navigation
+# Modified create_index method:
+
+# Add a call to self._initialize_function_agent() at the end after creating the query engine
+# Completely rewritten ask_agent method:
+
+# Change return type from StreamingResponse to AsyncGenerator[str, None]
+# Make the method async
+# Use self._function_agent.run(prompt) instead of self._query_engine.query(prompt)
+# Stream events using async for loop over handler.stream_events()
+# Yield delta text from AgentStream events
+# The core idea is replacing your direct query engine call with the FunctionAgent that can choose between the RAG tool (your existing functionality) and the page navigation tool based on the user's prompt.
     
 
 

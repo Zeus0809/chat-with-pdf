@@ -4,15 +4,18 @@ from llama_index.core.base.llms.types import (
     CompletionResponse,
     ChatMessage,
     ChatResponse,
-    ChatResponseGen
+    ChatResponseGen,
+    MessageRole
 )
 from llama_index.core.llms.callbacks import llm_completion_callback, llm_chat_callback
+from llama_index.core.agent.workflow.workflow_events import ToolSelection
 from llama_index.core.bridge.pydantic import PrivateAttr, Field
 from llama_index.core.embeddings import MultiModalEmbedding
 from llama_index.core.llms.function_calling import FunctionCallingLLM
-from typing import Optional, List, Any
+from llama_index.core.tools.types import BaseTool
+from typing import Optional, List, Any, Dict
 from llama_cpp import Llama
-import requests, json
+import requests, json, aiohttp, re
 
 class LlamaCppEmbedding(MultiModalEmbedding):
     """"
@@ -199,7 +202,8 @@ class DockerLLM(FunctionCallingLLM):
         """Docker LLM metadata."""
         return LLMMetadata(
             is_chat_model=True,
-            model_name=self.model
+            model_name=self.model,
+            is_function_calling_model=True
         )
     
     def _get_completions_endpoint(self) -> str:
@@ -229,7 +233,7 @@ class DockerLLM(FunctionCallingLLM):
         )
     
     @llm_completion_callback()
-    def acomplete(self):
+    async def acomplete(self):
         """Just a placeholder"""
         raise NotImplementedError('acomplete is not yet implemented in DockerLLM.')
     
@@ -287,23 +291,131 @@ class DockerLLM(FunctionCallingLLM):
         return gen()
 
     @llm_completion_callback()
-    def astream_complete(self):
+    async def astream_complete(self):
         """Just a placeholder"""
         raise NotImplementedError('astream_complete is not yet implemented in DockerLLM.')
 
-    def _prepare_chat_with_tools(self):
-        """Just a placeholder"""
-        raise NotImplementedError('_prepare_chat_with_tools is not yet implemented in DockerLLM.')
+    def _prepare_chat_with_tools(
+        self,
+        tools: List[BaseTool],
+        user_msg: Optional[str] = None,
+        chat_history: Optional[List[ChatMessage]] = None,
+        verbose: bool = False,
+        allow_parallel_tool_calls: bool = False,
+        tool_choice: str = "auto",
+        **kwargs: Any,
+    ) -> Dict[str, Any]:
+        """
+        Prepare chat with tools for function calling.
+        """
+        # Convert tools to OpenAI function format
+        functions = []
+        for tool in tools:
+            functions.append({
+                "name": tool.metadata.name,
+                "description": tool.metadata.description,
+                "parameters": tool.metadata.get_parameters_dict()
+            })
+        
+        # Prepare messages
+        messages = chat_history or []
+        if user_msg:
+            messages.append(ChatMessage(role=MessageRole.USER, content=user_msg))
+        
+        return {
+            "messages": messages,
+            "functions": functions,
+            "function_call": tool_choice,
+            **kwargs
+        }
     
     @llm_chat_callback()
-    def chat(self):
-        """Just a placeholder"""
-        raise NotImplementedError('chat is not yet implemented in DockerLLM.')
+    def chat(self, messages: List[ChatMessage], **kwargs: Any) -> ChatResponse:
+        """
+        Synchronous chat method required by FunctionCallingLLM.
+        """
+        # Convert to streaming and get the last response
+        response_gen = self.stream_chat(messages, **kwargs)
+        final_response = None
+        for response in response_gen:
+            final_response = response
+        return final_response or ChatResponse(message=ChatMessage(role=MessageRole.ASSISTANT, content=""))
     
     @llm_chat_callback()
-    def achat(self):
-        """Just a placeholder"""
-        raise NotImplementedError('achat is not yet implemented in DockerLLM.')
+    async def achat(self, messages: List[ChatMessage], **kwargs: Any) -> ChatResponse:
+        """
+        Async chat method - for now, just call the sync version.
+        """
+        return self.chat(messages, **kwargs)
+
+    def get_tool_calls_from_response(
+        self,
+        response: ChatResponse,
+        error_on_no_tool_call: bool = True,
+        **kwargs: Any,
+    ) -> List[Any]:
+        """
+        Extract tool calls from the response.
+        Parse text-based tool calls like: rag_query("What is this about?")
+        """
+        
+        content = response.message.content
+        tool_calls = []
+        
+        # Pattern to match tool calls in various formats:
+        # rag_query("question")
+        # call_rag_query(query="question")  
+        # ```tool_code\nrag_query("question")\n```
+        patterns = [
+            r'```tool_code\s*\n([^`]+)\n```',  # Tool code blocks
+            r'(\w+)\s*\(\s*["\']([^"\']+)["\']\s*\)',  # Simple function calls
+            r'(\w+)\s*\(\s*query\s*=\s*["\']([^"\']+)["\']\s*\)',  # With query parameter
+        ]
+        
+        for pattern in patterns:
+            matches = re.findall(pattern, content, re.MULTILINE | re.DOTALL)
+            for match in matches:
+                if len(match) == 2:
+                    tool_name = match[0].strip()
+                    # Handle tool_code blocks
+                    if tool_name.startswith('call_'):
+                        tool_name = tool_name[5:]  # Remove 'call_' prefix
+                    elif 'call_' in match[0]:
+                        # Extract tool name from call_rag_query format
+                        tool_match = re.search(r'call_(\w+)', match[0])
+                        if tool_match:
+                            tool_name = tool_match.group(1)
+                        else:
+                            continue
+                    elif '(' in match[0]:
+                        # Extract from rag_query("...") format in tool_code
+                        tool_match = re.search(r'(\w+)\s*\(', match[0])
+                        if tool_match:
+                            tool_name = tool_match.group(1)
+                            # Extract the argument
+                            arg_match = re.search(r'["\']([^"\']+)["\']', match[0])
+                            if arg_match:
+                                match = (tool_name, arg_match.group(1))
+                            else:
+                                continue
+                        else:
+                            continue
+                    
+                    tool_input = match[1].strip()
+                    
+                    # Create a ToolSelection object with the correct parameters
+                    tool_call = ToolSelection(
+                        tool_name=tool_name,
+                        tool_kwargs={"query": tool_input},  # Pass as kwargs dict
+                        tool_id=f"{tool_name}_{len(tool_calls)}"  # Generate a unique ID
+                    )
+                    tool_calls.append(tool_call)
+                    print(f"🔧 DETECTED TOOL CALL: {tool_name}({tool_input})")
+        
+        if not tool_calls and error_on_no_tool_call:
+            print(f"🔧 NO TOOL CALLS FOUND in: {content[:200]}...")
+            
+        return tool_calls
 
     @llm_chat_callback()
     def stream_chat(self, messages: List[ChatMessage], **kwargs: Any) -> ChatResponseGen:
@@ -377,10 +489,72 @@ class DockerLLM(FunctionCallingLLM):
 
         return gen()
 
-    @llm_chat_callback()
-    def astream_chat(self):
-        """Just a placeholder"""
-        raise NotImplementedError('astream_chat is not yet implemented in DockerLLM.')
+    async def astream_chat(self, messages: List[ChatMessage], **kwargs: Any):
+        """
+        Async streaming chat that returns an async generator function, not the generator itself.
+        This matches the expected pattern for LlamaIndex FunctionCallingLLM.
+        """
+        
+        # Convert LlamaIndex ChatMessage objects to OpenAI-compatible format
+        formatted_messages = []
+        for message in messages:
+            formatted_messages.append({
+                "role": message.role.value,  # Convert MessageRole enum to string
+                "content": message.content
+            })
+        
+        payload = {
+            "model": self.model,
+            "messages": formatted_messages,
+            "temperature": self.temperature,
+            "max_tokens": self.max_tokens,
+            "stream": True,
+            **kwargs  # This includes functions, tool_choice, etc.
+        }
+
+        async def stream_generator():
+            timeout = aiohttp.ClientTimeout(total=self.timeout)
+            async with aiohttp.ClientSession(timeout=timeout) as session:
+                async with session.post(
+                    url=self._get_chat_endpoint(),
+                    json=payload
+                ) as response:
+                    response.raise_for_status()
+                    
+                    content = ""
+                    async for line_bytes in response.content:
+                        line = line_bytes.decode('utf-8').strip()
+                        if not line or line == "[DONE]":
+                            continue
+
+                        if line.startswith("data: "):
+                            line = line[6:]
+
+                        try:
+                            data = json.loads(line)
+
+                            delta = ""
+                            if "choices" in data and len(data["choices"]) > 0:
+                                choice = data["choices"][0]
+                                if "delta" in choice and "content" in choice["delta"]:
+                                    delta = choice["delta"]["content"]
+                                elif "message" in choice and "content" in choice["message"]:
+                                    delta = choice["message"]["content"]
+                                elif "text" in choice:
+                                    delta = choice["text"]
+                                
+                            if delta:
+                                content += delta
+                                chat_response = ChatResponse(
+                                    message=ChatMessage(role=MessageRole.ASSISTANT, content=content),
+                                    delta=delta,
+                                    raw=data
+                                )
+                                yield chat_response
+                        except (json.JSONDecodeError, KeyError, IndexError, TypeError):
+                            continue
+        
+        return stream_generator()
 
     
 
