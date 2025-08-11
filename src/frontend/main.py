@@ -40,43 +40,65 @@ def main(page: ft.Page):
         
         # Ask the agent
         start_time = time.time()
-        response_handler = service.agent.ask_agent(user_message)
+        response_handler = service.agent.ask_agent(user_message) # returns a WorkflowHandler
 
         # Create placeholder to accumulate response, and a flag to wait for first token arrival
         agent_text_block = ft.Text("", **TextStyles.message_text())
         agent_row = ChatStyles.create_agent_message_row(bubble_content=agent_text_block)
         first_token = True
         
-        # Check if we have a streaming response or a completed response
-        if hasattr(response_handler, 'stream_events'):
-            # Streaming response - iterate over events
-            async for event in response_handler.stream_events():
+        # Loop over agent events as they come in
+        content_buffer = ""
+        display_buffer = ""  # Separate buffer for what we actually show
+        tool_call_in_progress = False
+        progress_ring = None
+        
+        async for event in response_handler.stream_events():
+            # Only display AgentStream events (filter out all others)
+            if type(event).__name__ == 'AgentStream':
                 if first_token:
                     del chat_messages.controls[-1] # remove loading
                     chat_messages.controls.append(agent_row)
                     chat_messages.update()
                     first_token = False
-                # display the rest of the stream - look for AgentStream events
-                if hasattr(event, 'delta'):
+                
+                # Display the delta from AgentStream events
+                if hasattr(event, 'delta') and event.delta:
                     delta = str(event.delta)
-                    if "\n" in delta:
-                        delta = delta.strip("\n")
-                    agent_row.controls[0].controls[0].content.value += delta
-                    agent_row.update()
-                    chat_messages.scroll_to(offset=-1, curve=ft.AnimationCurve.EASE_OUT)
-        else:
-            # Fallback: if no stream_events, await the response
-            final_result = await response_handler
-            del chat_messages.controls[-1] # remove loading
-            if hasattr(final_result, 'message'):
-                # AgentOutput with message
-                agent_text_block.value = str(final_result.message)
-            else:
-                # Plain string response
-                agent_text_block.value = str(final_result)
-            chat_messages.controls.append(agent_row)
-            chat_messages.update()
-            chat_messages.scroll_to(offset=-1, curve=ft.AnimationCurve.EASE_OUT)
+                    content_buffer += delta
+                    
+                    # Check if we're entering a tool call (```text``` block)
+                    if '```' in delta and not tool_call_in_progress:
+                        tool_call_in_progress = True
+                        # Add progress ring to the message bubble
+                        progress_row = loading_tools()
+                        agent_row.controls[0].controls.append(progress_row)
+                        agent_row.update()
+                        continue  # Skip updating content while tool call starts
+                    
+                    # Only add to display buffer and update UI if NOT in a tool call
+                    if not tool_call_in_progress:
+                        display_buffer += delta
+                        agent_row.controls[0].controls[0].content.value = display_buffer
+                        agent_row.update()
+                        chat_messages.scroll_to(offset=-1, curve=ft.AnimationCurve.EASE_OUT)
+                    else:
+                        # Check if tool call finished by looking at the full content buffer
+                        processed_content = filter_code_blocks(content_buffer)
+                        if len(processed_content.strip()) > len(display_buffer.strip()):
+                            tool_call_in_progress = False
+                            # Remove progress ring
+                            if len(agent_row.controls[0].controls) > 1:
+                                agent_row.controls[0].controls.pop()  # Remove progress row
+                            # Update display buffer with the new content after tool call
+                            display_buffer = processed_content
+                            agent_row.controls[0].controls[0].content.value = display_buffer
+                            agent_row.update()
+                            chat_messages.scroll_to(offset=-1, curve=ft.AnimationCurve.EASE_OUT)
+        
+        # Wait for completion
+        final_response = await response_handler
+    
         # add elapsed time
         elapsed_time = time.time() - start_time
         elapsed_time_text = ft.Text(f"({elapsed_time:.2f}s)", **TextStyles.elapsed_time())
@@ -87,6 +109,17 @@ def main(page: ft.Page):
         sidebar_content.update()
         chat_messages.scroll_to(offset=-1, curve=ft.AnimationCurve.EASE_OUT)
 
+    def filter_code_blocks(text):
+        """
+        Remove content between ```text``` blocks while preserving content before and after.
+        """
+        import re
+        # Use regex to remove everything between ``` blocks
+        # This pattern matches ``` followed by any optional language identifier, then any content, then closing ```
+        pattern = r'```[^\n]*\n.*?\n```'
+        filtered_text = re.sub(pattern, '', text, flags=re.DOTALL)
+        return filtered_text.strip()
+        
     def loading_agent() -> None:
         """
         Create and add a loading indicator for agent responses to the UI.
@@ -124,6 +157,19 @@ def main(page: ft.Page):
         file_column.controls.append(loading_container)
         file_column.update()
         return ring
+
+    def loading_tools() -> ft.Row:
+        """Create and return a row with a loading indicator for tool calling."""
+        progress_ring = ft.ProgressRing(width=16, height=16, stroke_width=2)
+        progress_row = ft.Row(
+            controls=[
+                progress_ring,
+                ft.Text("Thinking...", size=12, color=ft.Colors.GREY_600)
+            ],
+            spacing=8,
+            alignment=ft.MainAxisAlignment.START
+        )
+        return progress_row
 
     def on_window_resize(e: ft.WindowResizeEvent) -> None:
         """
@@ -204,9 +250,6 @@ def main(page: ft.Page):
             file_column.controls.extend(image_containers)
             file_column.update()
             print(f"--{len(file_column.controls)} pages from {e.files[0].name} rendered!--")
-            # debug parsed content
-            # display_parsed_content(service.parser.debug_chunks())
-            # agent chat test
 
     def open_file(e) -> None:
         file_picker.pick_files(initial_directory="Desktop", allowed_extensions=["pdf"])

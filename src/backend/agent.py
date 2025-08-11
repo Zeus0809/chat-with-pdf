@@ -1,6 +1,7 @@
 from llama_index.core import VectorStoreIndex, Settings, SimpleDirectoryReader
 from llama_index.core.base.base_query_engine import BaseQueryEngine
 from llama_index.core.agent.workflow import FunctionAgent
+from llama_index.core.workflow.handler import WorkflowHandler
 from llama_index.core.tools import FunctionTool
 
 from llamaindex_utils.integrations import LlamaCppEmbedding, DockerLLM
@@ -81,16 +82,9 @@ class PDFAgent():
         assert isinstance(self._query_engine, BaseQueryEngine), f"Make sure _query_engine is created before you initialize the agent. Type received: {type(self._query_engine)}"
         assert isinstance(self._chat_model, DockerLLM), f"Make sure _chat_model is initialized before initializing the agent. Type received: {type(self._chat_model)}" 
         
-        # Create a debug wrapper for the query engine
-        def debug_rag_query(query: str) -> str:
-            print(f"🔧 RAG TOOL CALLED with query: {query}")
-            result = self._query_engine.query(query)
-            print(f"🔧 RAG TOOL RESULT: {str(result)[:200]}...")
-            return str(result)
-        
         # RAG tool with debug wrapper
         rag_tool = FunctionTool.from_defaults(
-            fn=debug_rag_query,
+            fn=self._rag_query,
             name=RAG_TOOL_NAME,
             description=RAG_TOOL_DESC
         )
@@ -124,7 +118,7 @@ class PDFAgent():
         self._initialize_agent()
         print(f"--Function Agent initialized--")
 
-    def ask_agent(self, prompt: str):
+    def ask_agent(self, prompt: str) -> WorkflowHandler:
         """
         Asks the agent a question from the user and returns the WorkflowHandler for streaming.
         """
@@ -135,8 +129,15 @@ class PDFAgent():
         
         return handler
     
-    def go_to_page():
+    def _go_to_page():
         pass
+
+    # Tool: Create a wrapper for the query engine
+    def _rag_query(self, query: str) -> str:
+        print(f"🔧 RAG TOOL CALLED with query: {query}")
+        result = self._query_engine.query(query)
+        print(f"🔧 RAG TOOL RESULT: {str(result)[:20]}...")
+        return str(result)
     
 
 
