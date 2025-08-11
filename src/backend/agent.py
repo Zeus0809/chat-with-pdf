@@ -5,15 +5,18 @@ from llama_index.core.tools import FunctionTool
 
 from llamaindex_utils.integrations import LlamaCppEmbedding, DockerLLM
 
-import os, time, shutil, requests, subprocess, platform
-# from typing import AsyncGenerator, TYPE_CHECKING
+import os, time, shutil, requests, subprocess, platform, json
 from dotenv import load_dotenv
 
 load_dotenv(verbose=True)
 
-CHAT_MODELS = {
-        "gemma3n" : "ai/gemma3n",
-    }
+# Parse CHAT_MODELS from JSON environment variable
+CHAT_MODELS = json.loads(os.getenv('CHAT_MODELS', '{}'))
+
+# Load environment variables for agent configuration
+AGENT_SYS_PROMPT = os.getenv('AGENT_SYS_PROMPT')
+RAG_TOOL_NAME = os.getenv('RAG_TOOL_NAME', 'rag_query')
+RAG_TOOL_DESC = os.getenv('RAG_TOOL_DESC')
 
 class PDFAgent():
 
@@ -88,8 +91,8 @@ class PDFAgent():
         # RAG tool with debug wrapper
         rag_tool = FunctionTool.from_defaults(
             fn=debug_rag_query,
-            name="rag_query",
-            description=os.getenv("RAG_TOOL_DESC")
+            name=RAG_TOOL_NAME,
+            description=RAG_TOOL_DESC
         )
         
         # page nav tool
@@ -103,7 +106,7 @@ class PDFAgent():
         self._function_agent = FunctionAgent(
             tools=[rag_tool],
             llm=self._chat_model,
-            system_prompt=os.getenv("AGENT_SYS_PROMPT")
+            system_prompt=AGENT_SYS_PROMPT
         )
 
     def create_index(self, file_path: str) -> None:
@@ -121,68 +124,24 @@ class PDFAgent():
         self._initialize_agent()
         print(f"--Function Agent initialized--")
 
-    async def ask_agent(self, prompt: str):
+    def ask_agent(self, prompt: str):
         """
-        Asks the agent a question from the user and returns the response content.
+        Asks the agent a question from the user and returns the WorkflowHandler for streaming.
         """
         assert isinstance(prompt, str), f"Prompt should be a string, instead got {type(prompt)}."
-
-        print(f"🤖 Agent received prompt: {prompt}")
         
-        # Run the agent and get the result
-        result = await self._function_agent.run(user_msg=prompt)
+        # Run the agent and return the handler (NOT awaited)
+        handler = self._function_agent.run(user_msg=prompt)
         
-        print(f"🤖 Agent returned type: {type(result)}")
-        print(f"🤖 Agent returned: {str(result)[:200]}...")
-        
-        # Check if we got an AgentOutput (final result) or WorkflowHandler (streaming)
-        if hasattr(result, 'response'):
-            # AgentOutput case - return the response content
-            print(f"🤖 Returning response: {str(result.response)[:200]}...")
-            return result.response
-        elif hasattr(result, 'stream_events'):
-            # WorkflowHandler case - return as-is for streaming
-            print("🤖 Returning streaming handler")
-            return result
-        else:
-            # Fallback - return whatever we got
-            print("🤖 Returning fallback result")
-            return result
+        return handler
     
     def go_to_page():
         pass
     
 
 
-# Last convo with Copilot (we're gonna implement a FunctionAgent and make the UI async to allow tool calling):
 
-# Missing imports you'll need:
 
-# QueryEngineTool and FunctionTool from llama_index.core.tools
-# FunctionAgent and AgentStream from llama_index.core.agent.workflow
-# AsyncGenerator from typing
-# asyncio module
-# New instance variables to add in init:
-
-# self._function_agent = None (to store the FunctionAgent)
-# New method to add after create_index:
-
-# _initialize_function_agent() method that creates the RAG tool from your existing query engine, creates a goto_page tool, and initializes the FunctionAgent with both tools
-# New method for page navigation:
-
-# _go_to_page_fn(page_number: int) method that will be called by the agent when users request page navigation
-# Modified create_index method:
-
-# Add a call to self._initialize_function_agent() at the end after creating the query engine
-# Completely rewritten ask_agent method:
-
-# Change return type from StreamingResponse to AsyncGenerator[str, None]
-# Make the method async
-# Use self._function_agent.run(prompt) instead of self._query_engine.query(prompt)
-# Stream events using async for loop over handler.stream_events()
-# Yield delta text from AgentStream events
-# The core idea is replacing your direct query engine call with the FunctionAgent that can choose between the RAG tool (your existing functionality) and the page navigation tool based on the user's prompt.
-    
 
 
 

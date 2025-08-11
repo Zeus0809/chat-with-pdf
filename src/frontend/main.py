@@ -1,3 +1,4 @@
+from llama_index.core.agent.workflow import AgentStream
 import sys, os, time, threading
 
 # Add the project root to the Python path
@@ -39,38 +40,40 @@ def main(page: ft.Page):
         
         # Ask the agent
         start_time = time.time()
-        response = await service.agent.ask_agent(user_message)
-        
+        response_handler = service.agent.ask_agent(user_message)
+
         # Create placeholder to accumulate response, and a flag to wait for first token arrival
         agent_text_block = ft.Text("", **TextStyles.message_text())
         agent_row = ChatStyles.create_agent_message_row(bubble_content=agent_text_block)
         first_token = True
         
         # Check if we have a streaming response or a completed response
-        if hasattr(response, 'stream_events'):
+        if hasattr(response_handler, 'stream_events'):
             # Streaming response - iterate over events
-            for event in response.stream_events():
+            async for event in response_handler.stream_events():
                 if first_token:
                     del chat_messages.controls[-1] # remove loading
                     chat_messages.controls.append(agent_row)
                     chat_messages.update()
                     first_token = False
-                # display the rest of the stream
-                delta = str(event.delta)
-                if "\n" in delta:
-                    delta = delta.strip("\n")
-                agent_row.controls[0].controls[0].content.value += delta
-                agent_row.update()
-                chat_messages.scroll_to(offset=-1, curve=ft.AnimationCurve.EASE_OUT)
+                # display the rest of the stream - look for AgentStream events
+                if hasattr(event, 'delta'):
+                    delta = str(event.delta)
+                    if "\n" in delta:
+                        delta = delta.strip("\n")
+                    agent_row.controls[0].controls[0].content.value += delta
+                    agent_row.update()
+                    chat_messages.scroll_to(offset=-1, curve=ft.AnimationCurve.EASE_OUT)
         else:
-            # Completed response - display all at once
+            # Fallback: if no stream_events, await the response
+            final_result = await response_handler
             del chat_messages.controls[-1] # remove loading
-            if hasattr(response, 'message'):
+            if hasattr(final_result, 'message'):
                 # AgentOutput with message
-                agent_text_block.value = str(response.message)
+                agent_text_block.value = str(final_result.message)
             else:
                 # Plain string response
-                agent_text_block.value = str(response)
+                agent_text_block.value = str(final_result)
             chat_messages.controls.append(agent_row)
             chat_messages.update()
             chat_messages.scroll_to(offset=-1, curve=ft.AnimationCurve.EASE_OUT)

@@ -13,7 +13,7 @@ from llama_index.core.bridge.pydantic import PrivateAttr, Field
 from llama_index.core.embeddings import MultiModalEmbedding
 from llama_index.core.llms.function_calling import FunctionCallingLLM
 from llama_index.core.tools.types import BaseTool
-from typing import Optional, List, Any, Dict
+from typing import Optional, List, Any, Dict, AsyncGenerator
 from llama_cpp import Llama
 import requests, json, aiohttp, re
 
@@ -489,7 +489,8 @@ class DockerLLM(FunctionCallingLLM):
 
         return gen()
 
-    async def astream_chat(self, messages: List[ChatMessage], **kwargs: Any):
+    @llm_chat_callback()
+    async def astream_chat(self, messages: List[ChatMessage], **kwargs: Any) -> ChatResponseGen:
         """
         Async streaming chat that returns an async generator function, not the generator itself.
         This matches the expected pattern for LlamaIndex FunctionCallingLLM.
@@ -512,7 +513,7 @@ class DockerLLM(FunctionCallingLLM):
             **kwargs  # This includes functions, tool_choice, etc.
         }
 
-        async def stream_generator():
+        async def stream_generator() -> AsyncGenerator:
             timeout = aiohttp.ClientTimeout(total=self.timeout)
             async with aiohttp.ClientSession(timeout=timeout) as session:
                 async with session.post(
@@ -553,8 +554,9 @@ class DockerLLM(FunctionCallingLLM):
                                 yield chat_response
                         except (json.JSONDecodeError, KeyError, IndexError, TypeError):
                             continue
-        
+                        
         return stream_generator()
+
 
     
 
