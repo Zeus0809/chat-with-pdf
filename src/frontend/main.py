@@ -1,4 +1,3 @@
-from llama_index.core.agent.workflow import AgentStream
 import sys, os, time, threading
 
 # Add the project root to the Python path
@@ -16,8 +15,27 @@ def main(page: ft.Page):
     page.horizontal_alignment = ft.CrossAxisAlignment.CENTER
     load_dotenv()
 
+    #############-UI-Callbacks-###############
+
+    def go_to_page(page_number: int) -> str:
+        """
+        Tool: takes user to page_number by scrolling file_column.
+        Passed to the backend inside of callback registry to be used by PDFAgent as a tool.
+        """
+        assert isinstance(page_number, int), f"page_number must be an integer. Instead got {type(page_number)}"
+        print(f"🔧 GOTO PAGE TOOL CALLED with page_number: {page_number}")
+        file_column.scroll_to(key=str(page_number))
+        print(f"🔧 GOTO PAGE TOOL FINISHED")
+        return f"Successfully navigated to page {page_number}"
+
+    ui_callbacks = {
+        'goto_page' : go_to_page
+    }
+
     # Initialize backend service, that also initializes the agent (using docker model runner by default)
-    service = PDFService()
+    service = PDFService(ui_callbacks=ui_callbacks)
+
+    #############-Misc-UI-Methods--###############
 
     async def on_message_send(e) -> None:
         """
@@ -48,10 +66,7 @@ def main(page: ft.Page):
         first_token = True
         
         # Loop over agent events as they come in
-        content_buffer = ""
-        display_buffer = ""  # Separate buffer for what we actually show
-        tool_call_in_progress = False
-        progress_ring = None
+        response_text = ""
         
         async for event in response_handler.stream_events():
             # Only display AgentStream events (filter out all others)
@@ -65,39 +80,16 @@ def main(page: ft.Page):
                 # Display the delta from AgentStream events
                 if hasattr(event, 'delta') and event.delta:
                     delta = str(event.delta)
-                    content_buffer += delta
+                    response_text += delta
                     
-                    # Check if we're entering a tool call (```text``` block)
-                    if '```' in delta and not tool_call_in_progress:
-                        tool_call_in_progress = True
-                        # Add progress ring to the message bubble
-                        progress_row = loading_tools()
-                        agent_row.controls[0].controls.append(progress_row)
-                        agent_row.update()
-                        continue  # Skip updating content while tool call starts
-                    
-                    # Only add to display buffer and update UI if NOT in a tool call
-                    if not tool_call_in_progress:
-                        display_buffer += delta
-                        agent_row.controls[0].controls[0].content.value = display_buffer
-                        agent_row.update()
-                        chat_messages.scroll_to(offset=-1, curve=ft.AnimationCurve.EASE_OUT)
-                    else:
-                        # Check if tool call finished by looking at the full content buffer
-                        processed_content = filter_code_blocks(content_buffer)
-                        if len(processed_content.strip()) > len(display_buffer.strip()):
-                            tool_call_in_progress = False
-                            # Remove progress ring
-                            if len(agent_row.controls[0].controls) > 1:
-                                agent_row.controls[0].controls.pop()  # Remove progress row
-                            # Update display buffer with the new content after tool call
-                            display_buffer = processed_content
-                            agent_row.controls[0].controls[0].content.value = display_buffer
-                            agent_row.update()
-                            chat_messages.scroll_to(offset=-1, curve=ft.AnimationCurve.EASE_OUT)
+                    # Update the display with accumulated response
+                    agent_row.controls[0].controls[0].content.value = response_text
+                    agent_row.update()
+                    chat_messages.scroll_to(offset=-1, curve=ft.AnimationCurve.EASE_OUT)
         
         # Wait for completion
         final_response = await response_handler
+        print(f"Agent final full response: {final_response}")
     
         # add elapsed time
         elapsed_time = time.time() - start_time
@@ -108,17 +100,6 @@ def main(page: ft.Page):
         send_button.disabled = False
         sidebar_content.update()
         chat_messages.scroll_to(offset=-1, curve=ft.AnimationCurve.EASE_OUT)
-
-    def filter_code_blocks(text):
-        """
-        Remove content between ```text``` blocks while preserving content before and after.
-        """
-        import re
-        # Use regex to remove everything between ``` blocks
-        # This pattern matches ``` followed by any optional language identifier, then any content, then closing ```
-        pattern = r'```[^\n]*\n.*?\n```'
-        filtered_text = re.sub(pattern, '', text, flags=re.DOTALL)
-        return filtered_text.strip()
         
     def loading_agent() -> None:
         """
@@ -218,7 +199,7 @@ def main(page: ft.Page):
             def animate_progress():
                 progress = 0
                 while not stop_animation[0] and progress < 0.95:
-                    progress += 0.0095
+                    progress += 0.005
                     progress_ring.value = progress
                     file_column.update()
                     time.sleep(0.1)
@@ -245,7 +226,8 @@ def main(page: ft.Page):
             time.sleep(0.1)
 
             image_pages = [ft.Image(src=path, fit=ft.ImageFit.CONTAIN) for path in image_paths]
-            image_containers = [ft.Container(content=image_page, padding=10) for image_page in image_pages]
+            # key=page_idx+1 is the page number stored with every container as key
+            image_containers = [ft.Container(content=image_page, padding=10, key=page_idx+1) for page_idx, image_page in enumerate(image_pages)]
             file_column.controls.clear() # remove loading ring
             file_column.controls.extend(image_containers)
             file_column.update()
@@ -324,8 +306,9 @@ def main(page: ft.Page):
 
     submenu_file_controls = [ft.MenuItemButton(content=ft.Text("Open"), close_on_click=True, on_click=open_file)]
     submenu_chat_controls = [ft.MenuItemButton(content=ft.Text("Toggle Chat"), close_on_click=False, on_click=toggle_sidebar)] 
+    # submenu_view_scroll = [ft.MenuItemButton(content=ft.Text("Scroll"), close_on_click=True, on_click=go_to_page)]
     submenu_file = ft.SubmenuButton(content=ft.Text(value="File", text_align=ft.TextAlign.CENTER), controls=submenu_file_controls)
-    # submenu_view = ft.SubmenuButton(content=ft.Text(value="View", text_align=ft.TextAlign.CENTER))
+    # submenu_view = ft.SubmenuButton(content=ft.Text(value="Scroll", text_align=ft.TextAlign.CENTER), controls=submenu_view_scroll)
     submenu_chat = ft.SubmenuButton(content=ft.Text(value="Chat", text_align=ft.TextAlign.CENTER), controls=submenu_chat_controls)
 
     menu_controls = [submenu_file, submenu_chat]

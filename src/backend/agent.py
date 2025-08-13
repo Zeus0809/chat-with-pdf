@@ -16,12 +16,14 @@ CHAT_MODELS = json.loads(os.getenv('CHAT_MODELS', '{}'))
 
 # Load environment variables for agent configuration
 AGENT_SYS_PROMPT = os.getenv('AGENT_SYS_PROMPT')
-RAG_TOOL_NAME = os.getenv('RAG_TOOL_NAME', 'rag_query')
+RAG_TOOL_NAME = os.getenv('RAG_TOOL_NAME')
 RAG_TOOL_DESC = os.getenv('RAG_TOOL_DESC')
+GOTO_PAGE_TOOL_NAME = os.getenv('GOTO_PAGE_TOOL_NAME')
+GOTO_PAGE_TOOL_DESC = os.getenv('GOTO_PAGE_TOOL_DESC')
 
 class PDFAgent():
 
-    def __init__(self, llm_backend: str = "docker"):
+    def __init__(self, llm_backend: str = "docker", ui_callbacks: dict = None):
 
         # Initialize embedding model
         Settings.embed_model = LlamaCppEmbedding(model_path=os.getenv('EMBED_MODEL_PATH'), verbose=False)
@@ -35,6 +37,9 @@ class PDFAgent():
             print("\n\n###-Chat model initialized: Docker Model Runner with Gemma3n-###\n\n")
         else:
             raise ValueError(f"Unsupported LLM backend: {llm_backend}. Available options: 'docker'.")
+
+        # UI callbacks for agent
+        self.ui_callbacks = ui_callbacks
 
         # Index and query engine
         self._index = None
@@ -82,26 +87,27 @@ class PDFAgent():
         assert isinstance(self._query_engine, BaseQueryEngine), f"Make sure _query_engine is created before you initialize the agent. Type received: {type(self._query_engine)}"
         assert isinstance(self._chat_model, DockerLLM), f"Make sure _chat_model is initialized before initializing the agent. Type received: {type(self._chat_model)}" 
         
-        # RAG tool with debug wrapper
+        # RAG tool
         rag_tool = FunctionTool.from_defaults(
             fn=self._rag_query,
             name=RAG_TOOL_NAME,
             description=RAG_TOOL_DESC
         )
-        
+
         # page nav tool
-        # goto_page_tool = FunctionTool.from_defaults(
-        #     fn=self.go_to_page,
-        #     name="goto_page",
-        #     description="Use this tool when the user asks to be taken to a particular page in the PDF document. Input: page number. You should obtain the page number either from the user question, or from the conversation context."
-        # )
-        
+        goto_page_tool = FunctionTool.from_defaults(
+            fn=self.ui_callbacks.get('goto_page'), # fetching the callable from main.py
+            name=GOTO_PAGE_TOOL_NAME,
+            description=GOTO_PAGE_TOOL_DESC
+        )
+                
         # agent with more explicit prompting
         self._function_agent = FunctionAgent(
-            tools=[rag_tool],
+            tools=[rag_tool, goto_page_tool],
             llm=self._chat_model,
             system_prompt=AGENT_SYS_PROMPT
         )
+        
 
     def create_index(self, file_path: str) -> None:
         """
@@ -124,22 +130,20 @@ class PDFAgent():
         """
         assert isinstance(prompt, str), f"Prompt should be a string, instead got {type(prompt)}."
         
+        print(f"🔧 Agent received prompt: {prompt}")
+        
         # Run the agent and return the handler (NOT awaited)
         handler = self._function_agent.run(user_msg=prompt)
         
         return handler
-    
-    def _go_to_page():
-        pass
 
-    # Tool: Create a wrapper for the query engine
     def _rag_query(self, query: str) -> str:
+        """# Tool: a wrapper for the query engine for the agent to use"""
         print(f"🔧 RAG TOOL CALLED with query: {query}")
         result = self._query_engine.query(query)
         print(f"🔧 RAG TOOL RESULT: {str(result)[:20]}...")
         return str(result)
     
-
 
 
 

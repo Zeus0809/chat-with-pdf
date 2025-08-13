@@ -12,9 +12,9 @@ class PDFService:
     """
     Service class for handling all PDF operations including loading, parsing, and querying.
     """
-    def __init__(self, agent: "PDFAgent" =None):
+    def __init__(self, agent: "PDFAgent" =None, ui_callbacks=None):
         self.pdf: Optional["pd.Document"] = None  # raw document handle
-        self.agent = agent or self._create_default_agent()
+        self.agent = agent or self._create_default_agent(ui_callbacks=ui_callbacks)
         # make sure storage/ui exists and clear it
         os.makedirs("storage/ui", exist_ok=True)
         self._clear_ui_folder()
@@ -70,10 +70,10 @@ class PDFService:
         paths = sorted([os.path.abspath(os.path.join("storage/ui", fname)) for fname in os.listdir("storage/ui")])
         return paths
 
-    def _create_default_agent(self):
+    def _create_default_agent(self, ui_callbacks=None):
         """Create default agent for production use"""
         from src.backend.agent import PDFAgent
-        return PDFAgent(llm_backend="docker")
+        return PDFAgent(llm_backend="docker", ui_callbacks=ui_callbacks)
 
     @staticmethod
     def _clear_ui_folder() -> None:
