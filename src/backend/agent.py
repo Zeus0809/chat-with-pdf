@@ -1,6 +1,6 @@
 from llama_index.core import VectorStoreIndex, Settings, SimpleDirectoryReader
 from llama_index.core.base.base_query_engine import BaseQueryEngine
-from llama_index.core.agent.workflow import FunctionAgent
+from llama_index.core.agent.workflow import FunctionAgent, ReActAgent
 from llama_index.core.workflow.handler import WorkflowHandler
 from llama_index.core.tools import FunctionTool
 
@@ -46,7 +46,7 @@ class PDFAgent():
         self._query_engine = None
 
         # Agent with function caling
-        self._function_agent = None
+        self._react_agent = None
 
     def _ensure_docker_running(self) -> None:
         """
@@ -100,9 +100,9 @@ class PDFAgent():
             name=GOTO_PAGE_TOOL_NAME,
             description=GOTO_PAGE_TOOL_DESC
         )
-                
-        # agent with more explicit prompting
-        self._function_agent = FunctionAgent(
+
+        # try a react agent: it works!
+        self._react_agent = ReActAgent(
             tools=[rag_tool, goto_page_tool],
             llm=self._chat_model,
             system_prompt=AGENT_SYS_PROMPT
@@ -131,9 +131,9 @@ class PDFAgent():
         assert isinstance(prompt, str), f"Prompt should be a string, instead got {type(prompt)}."
         
         print(f"🔧 Agent received prompt: {prompt}")
-        
-        # Run the agent and return the handler (NOT awaited)
-        handler = self._function_agent.run(user_msg=prompt)
+
+        # call react agent instead of function agent
+        handler = self._react_agent.run(user_msg=prompt)
         
         return handler
 

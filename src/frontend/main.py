@@ -24,7 +24,7 @@ def main(page: ft.Page):
         """
         assert isinstance(page_number, int), f"page_number must be an integer. Instead got {type(page_number)}"
         print(f"🔧 GOTO PAGE TOOL CALLED with page_number: {page_number}")
-        file_column.scroll_to(key=str(page_number))
+        file_column.scroll_to(key=str(page_number), curve=ft.AnimationCurve.EASE_OUT)
         print(f"🔧 GOTO PAGE TOOL FINISHED")
         return f"Successfully navigated to page {page_number}"
 
