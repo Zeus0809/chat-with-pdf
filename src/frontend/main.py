@@ -7,13 +7,14 @@ sys.path.insert(0, project_root)
 import flet as ft
 from dotenv import load_dotenv
 from src.backend.service import PDFService
-from styles import ChatStyles, TextStyles, Dimensions
+from styles import ChatStyles, TextStyles, InterfaceStyles, Dimensions
 
 def main(page: ft.Page):
     page.title = "Chat With PDF"
     page.padding = 0
     page.horizontal_alignment = ft.CrossAxisAlignment.CENTER
     load_dotenv()
+    page_number = 0
 
     #############-UI-Callbacks-###############
 
@@ -233,6 +234,25 @@ def main(page: ft.Page):
             file_column.update()
             print(f"--{len(file_column.controls)} pages from {e.files[0].name} rendered!--")
 
+    def on_scroll(e: ft.OnScrollEvent) -> None:
+        """
+        Updates current page indicator based on scroll position.
+        """
+        if not file_column.controls or len(file_column.controls) == 0:
+            return
+            
+        total_pages = len(file_column.controls)
+        
+        # Use the built-in scroll event properties
+        scroll_percentage = e.pixels / e.max_scroll_extent if e.max_scroll_extent > 0 else 0
+
+        # Calculate current page based on scroll percentage
+        current_page = min(max(1, int(scroll_percentage * total_pages) + 1), total_pages)
+        
+        # Update the indicator
+        page_number_control.content.content.value = f"Page: {current_page}"
+        page_number_control.update()
+
     def open_file(e) -> None:
         file_picker.pick_files(initial_directory="Desktop", allowed_extensions=["pdf"])
         print("--File dialog opened!--")
@@ -245,7 +265,8 @@ def main(page: ft.Page):
         ],
         horizontal_alignment=ft.CrossAxisAlignment.CENTER,
         expand=True,
-        scroll=ft.ScrollMode.AUTO
+        scroll=ft.ScrollMode.AUTO,
+        on_scroll=on_scroll
     )
 
     chat_messages = ft.Column(
@@ -299,9 +320,21 @@ def main(page: ft.Page):
         padding=10,
     )
 
+    page_number_control = ft.Container(
+        content=ft.Container(
+            content=ft.Text(value=f"Page: {page_number}"),
+            **InterfaceStyles.PAGE_NUMBER
+        ),
+        alignment=ft.Alignment(-1, 1),
+        height=50,
+        width=100,
+        top=850
+    )
+
     # overlay
     file_picker = ft.FilePicker(on_result=on_dialog_result)
     page.overlay.append(file_picker)
+    page.overlay.append(page_number_control)
     page.update()
 
     submenu_file_controls = [ft.MenuItemButton(content=ft.Text("Open"), close_on_click=True, on_click=open_file)]

@@ -21,7 +21,8 @@ class ChatStyles:
         "loading_text": ft.Colors.GREY_600,
         "elapsed_time_text": ft.Colors.GREY_600,
         "background": ft.Colors.GREY_100,
-        "border": ft.Colors.GREY_300
+        "border": ft.Colors.GREY_300,
+        "page_number": ft.Colors.AMBER_100
     }
 
     MAX_BUBBLE_WIDTH_RATIO = 0.8 # 4/5 of the chat area
@@ -131,6 +132,15 @@ class TextStyles:
             "size": 12
         }
 
+class InterfaceStyles:
+    """Styles related to the main UI of the app."""
+
+    PAGE_NUMBER = {
+        "padding": ft.padding.all(12),
+        "bgcolor": ChatStyles.COLORS['page_number'],
+        "border": ft.border.all(1, ChatStyles.COLORS['border']),
+        "border_radius": ft.border_radius.all(3),
+    }
 
 
 
