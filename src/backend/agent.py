@@ -1,8 +1,9 @@
 from llama_index.core import VectorStoreIndex, Settings, SimpleDirectoryReader
 from llama_index.core.base.base_query_engine import BaseQueryEngine
-from llama_index.core.agent.workflow import FunctionAgent, ReActAgent
 from llama_index.core.workflow.handler import WorkflowHandler
+from llama_index.core.agent.workflow import ReActAgent
 from llama_index.core.tools import FunctionTool
+from llama_index.core.workflow import Context
 
 from llamaindex_utils.integrations import LlamaCppEmbedding, DockerLLM
 
@@ -45,8 +46,9 @@ class PDFAgent():
         self._index = None
         self._query_engine = None
 
-        # Agent with function caling
+        # Agent with function calling and Context
         self._react_agent = None
+        self._context = None
 
     def _ensure_docker_running(self) -> None:
         """
@@ -107,7 +109,9 @@ class PDFAgent():
             llm=self._chat_model,
             system_prompt=AGENT_SYS_PROMPT
         )
-        
+
+        # Add context
+        self._context = Context(self._react_agent)
 
     def create_index(self, file_path: str) -> None:
         """
@@ -133,7 +137,7 @@ class PDFAgent():
         print(f"🔧 Agent received prompt: {prompt}")
 
         # call react agent instead of function agent
-        handler = self._react_agent.run(user_msg=prompt)
+        handler = self._react_agent.run(user_msg=prompt, ctx=self._context)
         
         return handler
 

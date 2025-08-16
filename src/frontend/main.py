@@ -328,7 +328,7 @@ def main(page: ft.Page):
 
     page_number_control = ft.Container(
         content=ft.Container(
-            content=ft.Text(value="0"),
+            content=ft.Text(value="Page: 0"),
             **InterfaceStyles.PAGE_NUMBER
         ),
         alignment=ft.Alignment(-1, 1),
