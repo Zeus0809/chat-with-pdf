@@ -14,7 +14,6 @@ def main(page: ft.Page):
     page.padding = 0
     page.horizontal_alignment = ft.CrossAxisAlignment.CENTER
     load_dotenv()
-    page_number = 0
 
     #############-UI-Callbacks-###############
 
@@ -87,10 +86,17 @@ def main(page: ft.Page):
                     agent_row.controls[0].controls[0].content.value = response_text
                     agent_row.update()
                     chat_messages.scroll_to(offset=-1, curve=ft.AnimationCurve.EASE_OUT)
-        
-        # Wait for completion
-        final_response = await response_handler
-        print(f"Agent final full response: {final_response}")
+
+            # add a thinking block while waiting for RAG result
+            if type(event).__name__ == 'ToolCall' and event.tool_name == 'rag_query':
+                thinking_row = loading_tools()
+                agent_row.controls[0].controls.append(thinking_row)
+                agent_row.update()
+                chat_messages.scroll_to(offset=-1, curve=ft.AnimationCurve.EASE_OUT)
+
+            if type(event).__name__ == 'ToolCallResult' and event.tool_name == 'rag_query':
+                del agent_row.controls[0].controls[-1] # remove the 'Thinking' row
+
     
         # add elapsed time
         elapsed_time = time.time() - start_time
@@ -322,7 +328,7 @@ def main(page: ft.Page):
 
     page_number_control = ft.Container(
         content=ft.Container(
-            content=ft.Text(value=f"Page: {page_number}"),
+            content=ft.Text(value="0"),
             **InterfaceStyles.PAGE_NUMBER
         ),
         alignment=ft.Alignment(-1, 1),
@@ -339,9 +345,7 @@ def main(page: ft.Page):
 
     submenu_file_controls = [ft.MenuItemButton(content=ft.Text("Open"), close_on_click=True, on_click=open_file)]
     submenu_chat_controls = [ft.MenuItemButton(content=ft.Text("Toggle Chat"), close_on_click=False, on_click=toggle_sidebar)] 
-    # submenu_view_scroll = [ft.MenuItemButton(content=ft.Text("Scroll"), close_on_click=True, on_click=go_to_page)]
     submenu_file = ft.SubmenuButton(content=ft.Text(value="File", text_align=ft.TextAlign.CENTER), controls=submenu_file_controls)
-    # submenu_view = ft.SubmenuButton(content=ft.Text(value="Scroll", text_align=ft.TextAlign.CENTER), controls=submenu_view_scroll)
     submenu_chat = ft.SubmenuButton(content=ft.Text(value="Chat", text_align=ft.TextAlign.CENTER), controls=submenu_chat_controls)
 
     menu_controls = [submenu_file, submenu_chat]
