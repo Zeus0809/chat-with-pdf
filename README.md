@@ -12,7 +12,7 @@ A desktop application that enables interactive conversations with PDF documents 
 - **Loading Indicators**: Progressive loading animations for better UX
 
 ### 🤖 Local AI Integration
-- **Multiple LLM Backends**: Support for LlamaCPP, Ollama, and Docker Model Runner
+- **Local LLM backend**: Model Runner from Docker with Gemma3n
 - **Streaming Responses**: Real-time chat with response timing information
 - **RAG Pipeline**: Retrieval-Augmented Generation using LlamaIndex
 - **Local Embeddings**: Custom GGUF embedding model support
@@ -28,7 +28,7 @@ A desktop application that enables interactive conversations with PDF documents 
 - **Custom Integrations**: Purpose-built LlamaIndex extensions
 - **Service Layer**: Clean separation between UI and AI components
 - **Agent System**: Intelligent document querying with context awareness
-- **Flexible Backend**: Easy switching between different AI model providers
+- **Tool Calling**: Agent has access to two tools - rag_query and goto_page
 
 ## Architecture
 
@@ -51,10 +51,6 @@ A desktop application that enables interactive conversations with PDF documents 
 
 ### AI Agent System
 - **PDFAgent**: Implements RAG pipeline for document querying
-- **Multi-Backend Support**:
-  - **LlamaCPP**: Local GGUF models (e.g., Mistral 7B)
-  - **Ollama**: Local model serving (e.g., Gemma3n)
-  - **Docker Model Runner**: Containerized model serving (experimental)
 - **LlamaIndex Integration**: Vector indexing and query engine
 - **Streaming**: Real-time response generation with timing metrics
 
@@ -119,7 +115,6 @@ LOGO_PATH=src/assets/logo.png            # Application logo
 
 ### Model Configuration
 - **Default Backend**: Docker Model Runner with Gemma3n
-- **Alternative Backends**: LlamaCPP (Mistral 7B), Ollama (Gemma3n)
 - **Embedding Model**: Nomic Embed Text v2 MOE (Q8_0 GGUF)
 
 For detailed packaging instructions, refer to the [Flet Documentation](https://flet.dev/docs/publish/).
