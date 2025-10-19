@@ -1,4 +1,4 @@
-# Chat With PDF [Demo Here](https://www.youtube.com/watch?v=crji8FnIFAY))
+# Chat With PDF [Demo Here](https://www.youtube.com/watch?v=crji8FnIFAY)
 
 A desktop application that enables interactive conversations with PDF documents using local Large Language Models (LLMs). Built with Python and Flet, this application provides a complete solution for document analysis and questioning while maintaining full privacy through local AI processing.
 
