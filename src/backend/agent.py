@@ -1,9 +1,9 @@
 from llama_index.core import VectorStoreIndex, Settings, SimpleDirectoryReader
 from llama_index.core.base.response.schema import StreamingResponse
 
-from llamaindex_utils.integrations import LlamaCppEmbedding, DockerLLM
+from src.backend.integrations import LlamaCppEmbedding
 
-import os, time, shutil, requests, subprocess, platform
+import os, time, shutil
 from dotenv import load_dotenv
 
 load_dotenv(verbose=True)
@@ -20,53 +20,11 @@ class PDFAgent():
         # Initialize embedding model
         Settings.embed_model = LlamaCppEmbedding(model_path=os.getenv('EMBED_MODEL_PATH'), verbose=False)
         self._embed_model_path = os.getenv('EMBED_MODEL_PATH')
-
-        # Initialize chat model with the specified backend
-        if llm_backend == "docker":
-            self.ensure_docker_running()
-            # Initialize chat model with Ollama using Docker Model Runner (experiment)
-            self._chat_model = DockerLLM(model=CHAT_MODELS["gemma3n"])
-            print("\n\n###-Chat model initialized: Docker Model Runner with Gemma3n-###\n\n")
-        else:
-            raise ValueError(f"Unsupported LLM backend: {llm_backend}. Available options: 'docker'.")
+        self._chat_model = None
 
         # Index and query engine
         self._index = None
         self._query_engine = None
-
-    def ensure_docker_running(self) -> None:
-        """
-        Ensures that the Docker engine is running so that Docker Model Runner is available. If not, starts it.
-        """
-        try:
-            requests.get("http://localhost:12434/engine/llama.cpp/v1/models", timeout=3)
-        except:
-            # starting docker
-            if platform.system() == "Darwin": # macOS
-                subprocess.Popen(['open', '-a', 'Docker'], stdout=subprocess.DEVNULL, stderr=subprocess.DEVNULL)
-                time.sleep(4)
-                try:
-                    subprocess.run(['osascript', '-e', 'tell application "System Events" to set visible of process "Docker Desktop" to false'], stdout=subprocess.DEVNULL, stderr=subprocess.DEVNULL)
-                except:
-                    print("--Failed to hide Docker window--")
-            elif platform.system() == "Windows":
-                try:
-                    subprocess.Popen(['cmd', '/c', 'start', 'Docker Desktop'])
-                except Exception as e:
-                    print("--Failed to start docker on Windows--")
-                    # TODO: replace with actual UI error
-            else:
-                print("--Unsupported OS. Failed to start the docker engine.")
-                return
-            # Wait for Docker to start with timeout
-            for _ in range(8):  # Try for up to 8 seconds
-                time.sleep(1)
-                try:
-                    requests.get("http://localhost:12434/engine/llama.cpp/v1/models", timeout=2)
-                    print("--Docker Model Runner ready--")
-                    break
-                except:
-                    continue
 
     def create_index(self, file_path: str) -> None:
         """
@@ -86,7 +44,7 @@ class PDFAgent():
         Asks the agent a question from the user and returns the response.
         """
         assert isinstance(prompt, str), f"Prompt should be a string, instead got {type(prompt)}."
-        assert self._query_engine is not None, "Query engine is None. Please call PDFAgent.create_index_from_chunks() before asking the agent."
+        assert self._query_engine is not None, "Query engine is None. Please call PDFAgent.create_index() before asking the agent."
         start = time.time()
         response = self._query_engine.query(prompt) # returns a generator
         assert response, "Response from the agent is None."

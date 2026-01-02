@@ -37,7 +37,7 @@ class PDFService:
         self._convert_pages_to_images(os.path.basename(file_path))
         print(f"-*-File {os.path.basename(file_path)} loaded successfully in {round(time.time()-start, 2)}s!-*-")
 
-        self.agent.create_index(file_path)
+        # self.agent.create_index(file_path)
 
         return self._get_image_paths()
 

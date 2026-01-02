@@ -1,18 +1,8 @@
-import sys, os, time, threading
-
-### ADD NEW FEATURE ###
-# automatic scrolling to the page where information is located -> tool calling with MCP
-### ADD NEW FEATURE ###
-
-# Add the project root to the Python path
-project_root = os.path.join(os.path.dirname(__file__), '..', '..')
-sys.path.insert(0, project_root)
-
 import flet as ft
+import os, time, threading
 from dotenv import load_dotenv
 from src.backend.service import PDFService
-from src.backend.agent import PDFAgent
-from styles import ChatStyles, TextStyles, Dimensions
+from src.frontend.styles import ChatStyles, TextStyles, Dimensions
 
 def main(page: ft.Page):
     page.title = "Chat With PDF"
