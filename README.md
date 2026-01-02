@@ -2,6 +2,12 @@
 
 A desktop application that enables interactive conversations with PDF documents using local Large Language Models (LLMs). Built with Python and Flet, this application provides a complete solution for document analysis and questioning while maintaining full privacy through local AI processing.
 
+## NOTE: The New Roadmap for Next Steps (2026)
+- The app will have a desktop version only, no cloud
+- There will be an ability to switch between cloud and local LLMs (settings section)
+- Ship a built executable file that can be installed on user's machine
+- Download and cache local LLMs upon installation
+
 ## Features
 
 ### 🖥️ Desktop GUI Application
