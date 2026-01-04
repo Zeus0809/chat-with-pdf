@@ -1,7 +1,9 @@
 from llama_index.core import VectorStoreIndex, Settings, SimpleDirectoryReader
 from llama_index.core.base.response.schema import StreamingResponse
+from llama_index.llms.llama_cpp import LlamaCPP
 
 from src.backend.integrations import LlamaCppEmbedding
+from src.backend.hardware import get_optimal_config
 
 import os, time, shutil
 from dotenv import load_dotenv
@@ -15,12 +17,11 @@ CHAT_MODELS = {
 
 class PDFAgent():
 
-    def __init__(self, llm_backend: str = "docker"):
-
-        # Initialize embedding model
-        Settings.embed_model = LlamaCppEmbedding(model_path=os.getenv('EMBED_MODEL_PATH'), verbose=False)
-        self._embed_model_path = os.getenv('EMBED_MODEL_PATH')
-        self._chat_model = None
+    def __init__(self):
+        self.optimal_model_config = get_optimal_config()
+        # Initialize embed and chat models
+        Settings.embed_model = LlamaCppEmbedding(model_path=os.getenv('EMBED_MODEL_PATH'), verbose=False, **self.optimal_model_config)
+        Settings.llm = LlamaCPP(**self.optimal_model_config)
 
         # Index and query engine
         self._index = None

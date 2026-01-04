@@ -54,9 +54,8 @@ Create a `HardwareDetector` class with static methods:
 - `get_available_ram_gb()` - Returns available RAM in gigabytes
 - `get_cpu_count()` - Returns logical CPU count (with fallback to 4)
 - `get_optimal_settings()` - Returns dictionary with optimal configuration:
-  - For Apple Silicon: Set `n_gpu_layers=33` (offload all layers), `device="metal"`
-  - For CPU-only: Set `n_gpu_layers=0`, `device="cpu"`
-  - Thread count: Use CPU count minus 2 (minimum 4)
+  1) CPU-only (OSX or Windows) - { 'n_gpu_layers' : 0, 'n_threads' : cpu_count }
+  2) MacOS Apple Silicon - { 'n_gpu_layers' : -1, 'n_threads' : 1 }
 
 **Testing Checklist:**
 - [ ] Test on Mac Intel
