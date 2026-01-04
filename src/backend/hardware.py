@@ -1,8 +1,23 @@
-import platform, os
+import platform, os, psutil
 
 def _is_apple_silicon() -> bool:
     """Detect if user's machine is an Apple Silicon Mac to use Metal acceleration"""
     return platform.system() == "Darwin" and platform.machine() == "arm64"
+
+def get_free_ram() -> int:
+    """
+    Returns:
+        The amount of unused, free RAM available on user's machine in GB, rounded to 1 decimal space.
+    """
+    ram = psutil.virtual_memory().available / (1024 ** 3)
+    return round(ram, 1)
+
+def get_total_ram() -> int:
+    """
+    Returns:
+        Total RAM capacity of user's machine.
+    """
+    return psutil.virtual_memory().total // (1024 ** 3)
 
 def get_optimal_config() -> dict:
     """

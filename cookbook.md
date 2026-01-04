@@ -72,18 +72,37 @@ Create a `HardwareDetector` class with static methods:
 
 **Purpose:** Handle model downloading, caching, and validation.
 
+**Model Management Plan:**
+Total RAM → Reserve for LLM (50%) → Model Selection (all Q4 models)
+8 GB      → 4 GB                   → Qwen3-Instruct-4B
+16 GB     → 8 GB                   → Llama4-Scout-8B
+32 GB     → 16 GB                  → Mistral-Small-3-24B
+64 GB     → 32 GB                  → Qwen3-Instruct-32B
+
+**User Messaging:**
+At startup/first launch:
+
+"ChatWithPDF works best when at least 50% of your RAM is free. Please close unnecessary applications before using the app for optimal performance."
+
+Or in documentation:
+
+"System Requirements: This app uses local AI models. For best performance, ensure you have at least 50% of your RAM available. Close browser tabs and other memory-intensive applications before starting."
+
+**Optional Safety Check:**
+You could still do a one-time check at startup:
+If available RAM < (total RAM * 0.4):
+    Show warning: "Low memory detected. Close some apps for better performance."
+    [Continue Anyway] [Quit]
+
 **Requirements:**
 - Check if models exist locally
 - Download models from HuggingFace with progress tracking
 - Verify checksums/integrity
-- Resume interrupted downloads
-- Check disk space before downloading
 - Provide progress callbacks for GUI integration
 - Download models from HuggingFace using `huggingface_hub` library
 - Verify model integrity through file size validation
 - Support resume of interrupted downloads (via `hf_hub_download` built-in feature)
 - Check disk space before downloading using `shutil.disk_usage`
-- Provide progress callbacks for GUI integration
 
 **Implementation Strategy:**
 

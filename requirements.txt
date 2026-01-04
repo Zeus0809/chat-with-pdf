@@ -38,6 +38,7 @@ GitPython==3.1.44
 greenlet==3.2.1
 griffe==1.7.3
 h11==0.16.0
+hf-xet==1.2.0
 httpcore==1.0.9
 httptools==0.6.4
 httpx==0.28.1
@@ -90,6 +91,7 @@ pillow==12.1.0
 platformdirs==4.3.7
 pluggy==1.6.0
 propcache==0.3.1
+psutil==7.2.1
 pycparser==2.22
 pydantic==2.11.7
 pydantic_core==2.33.2
