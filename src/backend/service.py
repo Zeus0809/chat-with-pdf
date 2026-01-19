@@ -1,8 +1,9 @@
-from typing import List, Optional
+from typing import List
 from dotenv import load_dotenv
 import time, os, shutil
 from src.backend.agent import PDFAgent
 import pymupdf as pd
+from platformdirs import user_data_dir, user_cache_dir
 
 load_dotenv(verbose=True)
 
@@ -14,7 +15,6 @@ class PDFService:
         self.pdf = None  # raw document handle (pd.Document)
         self.agent = PDFAgent()
         # make sure storage/ui exists and clear it
-        os.makedirs("storage/ui", exist_ok=True)
         self._clear_ui_folder()
         # make sure storage/data exists and clear it
         self._clear_data_folder()
