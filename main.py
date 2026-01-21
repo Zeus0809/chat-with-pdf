@@ -3,7 +3,7 @@ import os, time, threading
 from dotenv import load_dotenv
 from src.backend.service import PDFService
 from src.frontend.styles import ChatStyles, TextStyles, Dimensions
-
+#
 def main(page: ft.Page):
     page.title = "Chat With PDF"
     page.padding = 0
